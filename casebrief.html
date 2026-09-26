@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CaseBrief — Fraud Evidence Organizer</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#ffffff; --border:#e3e6ea; --text:#1a1d23; --muted:#6b7280;
+    --accent:#2563eb; --danger:#dc2626; --warn:#c2740a; --hit:#16a34a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);}
+  header{background:var(--panel);border-bottom:1px solid var(--border);padding:16px 20px;position:sticky;top:0;z-index:10;}
+  .top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  h1{font-size:20px;margin:0;}
+  header p{margin:2px 0 0;color:var(--muted);font-size:13px;}
+  .btn{border:1px solid var(--border);background:#fff;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;}
+  .btn.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn.danger{background:#fff;color:var(--danger);border-color:var(--danger);}
+  .stepper{display:flex;gap:6px;overflow-x:auto;margin-top:14px;padding-bottom:2px;}
+  .step{white-space:nowrap;padding:7px 12px;border-radius:16px;border:1px solid var(--border);background:#fafafa;font-size:12.5px;cursor:pointer;color:var(--muted);display:flex;gap:6px;align-items:center;}
+  .step b{color:var(--accent);}
+  .module-rail{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .chip{font-size:11.5px;padding:5px 10px;border-radius:12px;border:1px solid var(--border);background:#f2f3f5;color:var(--muted);}
+  .chip.hit{background:#e8f7ee;border-color:var(--hit);color:var(--hit);font-weight:700;}
+  main{max-width:960px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+  section{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;scroll-margin-top:150px;}
+  section h2{font-size:15px;margin:0 0 4px;}
+  section .hint{color:var(--muted);font-size:12.5px;margin:0 0 14px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:700px){.grid2{grid-template-columns:1fr;}}
+  .field{margin-bottom:8px;}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:3px;}
+  input,textarea{width:100%;padding:7px 9px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;}
+  textarea{min-height:70px;resize:vertical;}
+  .card{border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:13px;}
+  .card .meta{color:var(--muted);font-size:11.5px;margin-bottom:4px;}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:#eef2ff;color:var(--accent);margin-right:6px;text-transform:uppercase;}
+  .row{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+  .mini{font-size:10.5px;color:var(--muted);}
+  .empty{color:var(--muted);font-size:13px;font-style:italic;}
+  .gap-item{border-left:3px solid var(--warn);padding:8px 10px;background:#fdf6ec;border-radius:0 6px 6px 0;margin-top:6px;font-size:13px;}
+  .conflict-item{border-left:3px solid var(--danger);padding:8px 10px;background:#fdeeee;border-radius:0 6px 6px 0;margin-top:6px;font-size:13px;}
+  .toggle{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .rmbtn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:11px;}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0;}
+  .stat{border:1px solid var(--border);border-radius:8px;padding:10px;}
+  .stat .n{font-size:20px;font-weight:700;}
+  .stat .l{font-size:11px;color:var(--muted);}
+  footer{text-align:center;color:var(--muted);font-size:11.5px;padding:20px;}
+  @media print{ header,.no-print{display:none;} section{border:none;box-shadow:none;} }
+</style>
+</head>
+<body>
+
+<!--
+  Rubric mapping (organizer's own process-flow slide):
+  Unorganized Evidence -> Information Extraction -> Chronological Timeline
+  -> Missing Information -> Contradiction Detection -> Redaction -> Incident Report
+  Modules: Message Analyzer, URL Reputation Check, Network Monitoring (reframed as
+  cross-evidence correlation), Threat Intelligence Feed, Transaction Auditor, Fraud Attempt Log
+-->
+
+<header>
+  <div class="top">
+    <div>
+      <h1>CaseBrief</h1>
+      <p>Organizing evidence after an online fraud incident</p>
+    </div>
+    <div class="no-print" style="display:flex;gap:8px;">
+      <button class="btn primary" id="loadDemoBtn">Load Demo Case</button>
+      <button class="btn danger" id="resetBtn">Reset</button>
+    </div>
+  </div>
+  <nav class="stepper no-print" id="stepper"></nav>
+  <div class="module-rail no-print" id="moduleRail"></div>
+</header>
+
+<main>
+  <section id="s1">
+    <h2>1. Unorganized Evidence</h2>
+    <p class="hint">Paste a message/chat, or log a transaction. URLs inside pasted text are extracted automatically.</p>
+    <div class="grid2 no-print">
+      <div>
+        <div class="field"><label>Occurred at</label><input type="datetime-local" id="msgTime"></div>
+        <div class="field"><label>Message / chat text</label><textarea id="msgText" placeholder="Paste the message here..."></textarea></div>
+        <button class="btn" id="addMsgBtn">Add Message Evidence</button>
+      </div>
+      <div>
+        <div class="field"><label>Occurred at</label><input type="datetime-local" id="txTime"></div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="txAmount" placeholder="e.g. 5000"></div>
+        <div class="field"><label>UTR / reference no. (leave blank if unknown)</label><input type="text" id="txUtr" placeholder="e.g. 400512xxxxx"></div>
+        <div class="field"><label>Note</label><input type="text" id="txNote" placeholder="e.g. UPI debit per bank SMS"></div>
+        <button class="btn" id="addTxBtn">Add Transaction Evidence</button>
+      </div>
+    </div>
+    <div id="evidenceList"></div>
+  </section>
+
+  <section id="s2">
+    <h2>2. Information Extraction</h2>
+    <p class="hint">Dates, amounts, UPI IDs, phone numbers, emails and URLs pulled from each evidence item.</p>
+    <div id="extractionList"></div>
+  </section>
+
+  <section id="s3">
+    <h2>3. Chronological Timeline</h2>
+    <p class="hint">Events derived from evidence, ordered by time. Each card shows which modules fired.</p>
+    <div id="timelineList"></div>
+  </section>
+
+  <section id="s4">
+    <h2>4. Missing Information</h2>
+    <p class="hint">Required fields that are still empty.</p>
+    <div id="gapsList"></div>
+  </section>
+
+  <section id="s5">
+    <h2>5. Contradiction Detection</h2>
+    <p class="hint">Conflicting facts across evidence items.</p>
+    <div id="conflictsList"></div>
+  </section>
+
+  <section id="s6">
+    <h2>6. Redaction</h2>
+    <p class="hint">Sensitive identifiers are masked by default. Explicit reveal only.</p>
+    <div class="toggle no-print">
+      <input type="checkbox" id="revealToggle">
+      <label for="revealToggle" style="margin:0;">Reveal unmasked identifiers</label>
+    </div>
+    <div id="partiesList"></div>
+  </section>
+
+  <section id="s7">
+    <h2>7. Incident Report</h2>
+    <div class="summary-grid" id="reportSummary"></div>
+    <div class="no-print" style="display:flex;gap:8px;">
+      <button class="btn" id="printBtn">Print Report</button>
+      <button class="btn" id="exportBtn">Export JSON</button>
+    </div>
+  </section>
+</main>
+
+<footer>Local-first prototype — nothing here leaves the browser.</footer>
+
+<script>
+/* ---------- constants ---------- */
+const STEPS = [
+  ['s1','Unorganized Evidence'],['s2','Information Extraction'],['s3','Chronological Timeline'],
+  ['s4','Missing Information'],['s5','Contradiction Detection'],['s6','Redaction'],['s7','Incident Report']
+];
+const MODULES = ['Message Analyzer','URL Reputation Check','Network Monitoring','Threat Intelligence Feed','Transaction Auditor','Fraud Attempt Log'];
+
+const RE = {
+  money: /(?:₹|Rs\.?|INR)\s?([\d,]+(?:\.\d{1,2})?)/gi,
+  email: /\b[\w.\-]+@[\w\-]+\.[A-Za-z]{2,}\b/g,
+  upi: /[\w.\-]{2,}@(?![^\s@]*\.)[a-zA-Z]{2,15}\b/g,
+  phone: /\b[6-9]\d{9}\b/g,
+  url: /\bhttps?:\/\/[^\s)]+/gi
+};
+const THREAT_KEYWORDS = ['kyc','otp','urgent','verif','suspen','click here','immediately','pending','block','confirm now'];
+const SUSPICIOUS_TLDS = ['.tk','.ml','.ga','.cf','.xyz','.top'];
+const SHORTENERS = ['bit.ly','tinyurl.com','t.co','goo.gl','is.gd','cutt.ly'];
+const BAD_URL_WORDS = ['verify','kyc','secure-','login-','update-','confirm-'];
+const FRAUD_TYPE_KEYWORDS = {
+  'Phishing / KYC Scam': ['kyc','verif','otp','click','suspen','login'],
+  'Fake Job / Task Scam': ['part-time','task','earn from home','telegram','commission'],
+  'Investment / Crypto Scam': ['invest','guaranteed','trading','crypto','pig butcher'],
+  'Loan App / Blackmail': ['loan app','contacts','morphed','blackmail']
+};
+
+/* ---------- state ---------- */
+let state = { evidence: [], nextId: 1 };
+
+/* ---------- time helpers (all local, no UTC shift) ---------- */
+function pad(n){return String(n).padStart(2,'0');}
+function toLocalInputValue(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;}
+function parseLocal(str){
+  const [datePart,timePart] = str.split('T');
+  const [y,mo,da] = datePart.split('-').map(Number);
+  const [h,mi] = timePart.split(':').map(Number);
+  return new Date(y,mo-1,da,h,mi);
+}
+function addMinutes(str,mins){ const d=parseLocal(str); d.setMinutes(d.getMinutes()+mins); return toLocalInputValue(d); }
+function formatTime(str){ return parseLocal(str).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
+function todayAt(hhmm){ const [h,m]=hhmm.split(':').map(Number); const now=new Date(); now.setHours(h,m,0,0); return toLocalInputValue(now); }
+function nowLocal(){ return toLocalInputValue(new Date()); }
+
+/* ---------- utils ---------- */
+function esc(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function mask(v){ v=(v||'').toString(); return v.length<=4 ? '••••' : '•'.repeat(v.length-4)+v.slice(-4); }
+function checkUrl(url){
+  const lower=url.toLowerCase(); const reasons=[];
+  if (SHORTENERS.some(s=>lower.includes(s))) reasons.push('known shortener');
+  if (SUSPICIOUS_TLDS.some(t=>lower.includes(t))) reasons.push('suspicious TLD');
+  if (BAD_URL_WORDS.some(k=>lower.includes(k))) reasons.push('phishing-style keyword');
+  return {suspicious: reasons.length>0, reasons};
+}
+
+/* ---------- evidence ---------- */
+function addEvidence(ev){ ev.id = state.nextId++; state.evidence.push(ev); }
+function removeEvidence(id){ state.evidence = state.evidence.filter(e=>e.id!==id); render(); }
+
+function extractFields(ev){
+  const text = ev.type==='message' ? ev.text : (ev.note||'');
+  return {
+    money: [...text.matchAll(RE.money)].map(m=>m[0]),
+    emails: text.match(RE.email)||[],
+    upis: (text.match(RE.upi)||[]).filter(u=>!(text.match(RE.email)||[]).includes(u)),
+    phones: text.match(RE.phone)||[],
+    urls: text.match(RE.url)||[]
+  };
+}
+
+/* ---------- pipeline ---------- */
+function buildTimeline(evidence){
+  const events=[];
+  evidence.forEach(ev=>{
+    if (ev.type==='message'){
+      const mods = new Set(['Message Analyzer','Fraud Attempt Log']);
+      const kw = THREAT_KEYWORDS.filter(k=>ev.text.toLowerCase().includes(k));
+      if (kw.length) mods.add('Threat Intelligence Feed');
+      events.push({time:ev.occurredAt, title:'Suspicious Message Received', desc:ev.text.slice(0,140), modules:[...mods], evId:ev.id});
+      (ev.text.match(RE.url)||[]).forEach(u=>{
+        const check = checkUrl(u);
+        const m = new Set(['URL Reputation Check','Fraud Attempt Log']);
+        if (check.suspicious) m.add('Threat Intelligence Feed');
+        events.push({
+          time: addMinutes(ev.occurredAt,1),
+          title: check.suspicious ? 'Suspicious URL Identified' : 'URL Reviewed',
+          desc: u + (check.suspicious ? ' — flagged: '+check.reasons.join(', ') : ' — no known indicators'),
+          modules:[...m], evId:ev.id
+        });
+      });
+    } else if (ev.type==='transaction'){
+      events.push({
+        time: ev.occurredAt,
+        title: `₹${ev.amount} Transaction Recorded`,
+        desc: ev.note || 'Transaction evidence',
+        modules:['Transaction Auditor','Fraud Attempt Log'], evId:ev.id
+      });
+    }
+  });
+  events.sort((a,b)=>parseLocal(a.time)-parseLocal(b.time));
+  return events;
+}
+
+function findGaps(evidence){
+  const gaps=[];
+  evidence.forEach(ev=>{
+    if (ev.type==='transaction' && (!ev.utr || !ev.utr.trim())){
+      gaps.push(`Missing UTR / reference number for the ₹${ev.amount} transaction at ${formatTime(ev.occurredAt)} (evidence #${ev.id})`);
+    }
+  });
+  return gaps;
+}
+
+function findConflicts(evidence){
+  const conflicts=[];
+  const claimed=[], actual=[];
+  evidence.forEach(ev=>{
+    if (ev.type==='message'){
+      [...ev.text.matchAll(RE.money)].forEach(m=>claimed.push({amount:parseFloat(m[1].replace(/,/g,'')), evId:ev.id}));
+    } else if (ev.type==='transaction'){
+      actual.push({amount:parseFloat(ev.amount), evId:ev.id});
+    }
+  });
+  claimed.forEach(c=>actual.forEach(a=>{
+    const diff = Math.abs(c.amount-a.amount);
+    if (diff>0.5 && diff < c.amount*0.5){
+      conflicts.push(`Message (evidence #${c.evId}) references ₹${c.amount}, but transaction (evidence #${a.evId}) recorded ₹${a.amount}`);
+    }
+  }));
+  const msgs = evidence.filter(e=>e.type==='message').sort((a,b)=>parseLocal(a.occurredAt)-parseLocal(b.occurredAt));
+  if (msgs.length){
+    evidence.filter(e=>e.type==='transaction').forEach(t=>{
+      if (parseLocal(t.occurredAt) < parseLocal(msgs[0].occurredAt)){
+        conflicts.push(`Transaction (evidence #${t.id}) is timestamped before the first contact message (evidence #${msgs[0].id})`);
+      }
+    });
+  }
+  return conflicts;
+}
+
+function correlateEntities(evidence){
+  const map={};
+  evidence.forEach(ev=>{
+    const text = ev.type==='message' ? ev.text : (ev.note||'');
+    (text.match(RE.url)||[]).forEach(u=>{
+      let host; try{ host=new URL(u).hostname; } catch(e){ host=u; }
+      (map[host] = map[host]||new Set()).add(ev.id);
+    });
+  });
+  return Object.entries(map).filter(([,v])=>v.size>=2).map(([k,v])=>({entity:k, ids:[...v]}));
+}
+
+function classifyFraudType(evidence){
+  const text = evidence.filter(e=>e.type==='message').map(e=>e.text.toLowerCase()).join(' ');
+  let best='Unclassified / Needs Review', bestScore=0;
+  for (const [label,kws] of Object.entries(FRAUD_TYPE_KEYWORDS)){
+    const score = kws.filter(k=>text.includes(k)).length;
+    if (score>bestScore){ bestScore=score; best=label; }
+  }
+  return best;
+}
+
+function extractParties(evidence){
+  const phones=new Set(), emails=new Set(), upis=new Set();
+  evidence.forEach(ev=>{
+    const f = extractFields(ev);
+    f.phones.forEach(p=>phones.add(p));
+    f.emails.forEach(e=>emails.add(e));
+    f.upis.forEach(u=>upis.add(u));
+  });
+  return {phones:[...phones], emails:[...emails], upis:[...upis]};
+}
+
+/* ---------- demo ---------- */
+function loadDemo(){
+  state.evidence=[]; state.nextId=1;
+  addEvidence({type:'message', occurredAt: todayAt('10:34'),
+    text:'URGENT: Your KYC verification is pending and your account will be suspended. Call our helpline at 9876543210 or click http://secure-kyc-verify.tk/update to verify immediately.'});
+  addEvidence({type:'transaction', occurredAt: todayAt('10:45'), amount:4999, utr:'',
+    note:'UPI debit shown in bank SMS — no UTR captured in the screenshot'});
+  addEvidence({type:'message', occurredAt: todayAt('11:00'),
+    text:'This is your bank. We need one more payment of ₹5,000 to reverse the block — pay to verify@oksbi now, or visit http://secure-kyc-verify.tk again to confirm and avoid permanent suspension.'});
+  render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const timeline = buildTimeline(state.evidence);
+  const gaps = findGaps(state.evidence);
+  const conflicts = findConflicts(state.evidence);
+  const correlations = correlateEntities(state.evidence);
+  const reveal = document.getElementById('revealToggle').checked;
+
+  // stepper
+  document.getElementById('stepper').innerHTML = STEPS.map(([id,label],i)=>
+    `<div class="step" data-target="${id}"><b>${i+1}</b> ${esc(label)}</div>`).join('');
+
+  // module rail
+  const hitSet = new Set(timeline.flatMap(e=>e.modules));
+  if (correlations.length) hitSet.add('Network Monitoring');
+  document.getElementById('moduleRail').innerHTML = MODULES.map(m=>
+    `<span class="chip ${hitSet.has(m)?'hit':''}">${hitSet.has(m)?'●':'○'} ${esc(m)}</span>`).join('');
+
+  // evidence list
+  document.getElementById('evidenceList').innerHTML = state.evidence.length ? state.evidence.map(ev=>`
+    <div class="card">
+      <div class="row">
+        <div><span class="badge">${ev.type}</span><span class="mini">#${ev.id} · ${formatTime(ev.occurredAt)}</span></div>
+        <button class="rmbtn no-print" onclick="removeEvidence(${ev.id})">remove</button>
+      </div>
+      <div>${ev.type==='message' ? esc(ev.text) : `₹${ev.amount} — ${esc(ev.note||'')} ${ev.utr?('UTR: '+esc(ev.utr)):''}`}</div>
+    </div>`).join('') : `<p class="empty">No evidence yet. Add some above or click "Load Demo Case".</p>`;
+
+  // extraction
+  document.getElementById('extractionList').innerHTML = state.evidence.length ? state.evidence.map(ev=>{
+    const f = extractFields(ev);
+    const line = (label,arr)=> arr.length ? `<div class="mini"><b>${label}:</b> ${arr.map(esc).join(', ')}</div>` : '';
+    return `<div class="card"><div class="meta">Evidence #${ev.id} (${ev.type})</div>
+      ${line('Amounts',f.money)}${line('UPI IDs',f.upis)}${line('Phones',f.phones)}${line('Emails',f.emails)}${line('URLs',f.urls)}
+      ${!f.money.length && !f.upis.length && !f.phones.length && !f.emails.length && !f.urls.length ? '<span class="mini">No structured fields found.</span>' : ''}
+    </div>`;
+  }).join('') : `<p class="empty">Nothing to extract yet.</p>`;
+
+  // timeline
+  document.getElementById('timelineList').innerHTML = timeline.length ? timeline.map(e=>`
+    <div class="card">
+      <div class="row"><b>${formatTime(e.time)} — ${esc(e.title)}</b></div>
+      <div class="mini" style="margin:4px 0;">${esc(e.desc)}</div>
+      <div>${e.modules.map(m=>`<span class="chip hit" style="font-size:10px;">${esc(m)}</span>`).join(' ')}</div>
+    </div>`).join('') : `<p class="empty">Timeline will build automatically as evidence is added.</p>`;
+  if (correlations.length){
+    document.getElementById('timelineList').innerHTML += correlations.map(c=>
+      `<div class="card" style="border-color:var(--hit);"><b>Network Monitoring:</b> <span class="mini">${esc(c.entity)}</span> appears across evidence ${c.ids.map(id=>'#'+id).join(', ')} — same fraud pattern reused</div>`).join('');
+  }
+
+  // gaps
+  document.getElementById('gapsList').innerHTML = gaps.length ? gaps.map(g=>`<div class="gap-item">${esc(g)}</div>`).join('')
+    : `<p class="empty">No missing fields detected.</p>`;
+
+  // conflicts
+  document.getElementById('conflictsList').innerHTML = conflicts.length ? conflicts.map(c=>`<div class="conflict-item">${esc(c)}</div>`).join('')
+    : `<p class="empty">No contradictions detected.</p>`;
+
+  // parties / redaction
+  const parties = extractParties(state.evidence);
+  const plist = (label,arr)=> arr.length ? `<div class="mini" style="margin-bottom:4px;"><b>${label}:</b> ${arr.map(v=>reveal?esc(v):mask(v)).join(', ')}</div>` : '';
+  document.getElementById('partiesList').innerHTML = (parties.phones.length||parties.emails.length||parties.upis.length)
+    ? plist('Phones',parties.phones)+plist('Emails',parties.emails)+plist('UPI IDs',parties.upis)
+    : `<p class="empty">No sensitive identifiers found yet.</p>`;
+
+  // report
+  const loss = state.evidence.filter(e=>e.type==='transaction').reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  document.getElementById('reportSummary').innerHTML = `
+    <div class="stat"><div class="n">${classifyFraudType(state.evidence)}</div><div class="l">Fraud type (auto)</div></div>
+    <div class="stat"><div class="n">₹${loss}</div><div class="l">Estimated loss</div></div>
+    <div class="stat"><div class="n">${state.evidence.length}</div><div class="l">Evidence items</div></div>
+    <div class="stat"><div class="n">${gaps.length}</div><div class="l">Open gaps</div></div>
+    <div class="stat"><div class="n">${conflicts.length}</div><div class="l">Contradictions</div></div>`;
+}
+
+/* ---------- events ---------- */
+document.getElementById('addMsgBtn').onclick = ()=>{
+  const text = document.getElementById('msgText').value.trim();
+  if (!text) return;
+  const t = document.getElementById('msgTime').value || nowLocal();
+  addEvidence({type:'message', occurredAt:t, text});
+  document.getElementById('msgText').value='';
+  render();
+};
+document.getElementById('addTxBtn').onclick = ()=>{
+  const amount = document.getElementById('txAmount').value;
+  if (!amount) return;
+  const t = document.getElementById('txTime').value || nowLocal();
+  addEvidence({type:'transaction', occurredAt:t, amount:parseFloat(amount),
+    utr:document.getElementById('txUtr').value.trim(), note:document.getElementById('txNote').value.trim()});
+  document.getElementById('txAmount').value=''; document.getElementById('txUtr').value=''; document.getElementById('txNote').value='';
+  render();
+};
+document.getElementById('loadDemoBtn').onclick = loadDemo;
+document.getElementById('resetBtn').onclick = ()=>{ state.evidence=[]; state.nextId=1; render(); };
+document.getElementById('revealToggle').onchange = render;
+document.getElementById('printBtn').onclick = ()=>window.print();
+document.getElementById('exportBtn').onclick = ()=>{
+  const record = {
+    meta:{caseId:'CB-'+Date.now(), createdAt:new Date().toISOString()},
+    summary:{fraudType:classifyFraudType(state.evidence)},
+    evidence:state.evidence, timeline:buildTimeline(state.evidence),
+    gaps:findGaps(state.evidence), conflicts:findConflicts(state.evidence)
+  };
+  const blob = new Blob([JSON.stringify(record,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='incident-record.json'; a.click();
+};
+document.getElementById('stepper').addEventListener('click', (e)=>{
+  const step = e.target.closest('.step'); if (!step) return;
+  document.getElementById(step.dataset.target).scrollIntoView({behavior:'smooth'});
+});
+
+render();
+</script>
+</body>
+</html>
