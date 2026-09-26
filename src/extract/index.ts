@@ -10,6 +10,7 @@ export * from "./dates";
 export * from "./money";
 export * from "./urls";
 export * from "./payments";
+export * from "./entities";
 export * from "./whatsapp";
 export * from "./csv";
 
