@@ -31,13 +31,13 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ incident }) => {
   return (
     <div className="space-y-6">
       {/* Top Action Bar (hidden on print) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-md flex flex-col sm:flex-row items-center justify-between gap-3 no-print">
+      <div className="cb-surface border border-cb-border rounded-cb-md p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 no-print">
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <FileText className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-bold text-cb-text flex items-center gap-2">
+            <FileText className="w-4 h-4 text-cb-primary" />
             Executive Incident Brief (Print & Export Ready)
           </h3>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-cb-muted mt-0.5">
             Compliant with CERT-In and Indian National Cyber Crime Reporting Portal (NCRP) evidence submission standards.
           </p>
         </div>
@@ -45,23 +45,23 @@ export const IncidentReport: React.FC<IncidentReportProps> = ({ incident }) => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={printIncidentReport}
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            className="cb-btn-primary flex items-center gap-1.5 text-xs cursor-pointer shadow-sm"
           >
-            <Printer className="w-4 h-4" />
+            <Printer className="w-3.5 h-3.5" />
             Print Official Report
           </button>
           <button
             onClick={() => exportShareableRedactedJSON(incident)}
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            className="px-3 py-1.5 bg-cb-success hover:bg-cb-success/90 text-white text-xs font-semibold rounded-cb-sm flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
           >
-            <Share2 className="w-4 h-4" />
+            <Share2 className="w-3.5 h-3.5" />
             Export Redacted JSON
           </button>
           <button
             onClick={() => exportFullForensicJSON(incident)}
-            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="cb-btn-ghost flex items-center gap-1.5 text-xs cursor-pointer"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-3.5 h-3.5" />
             Forensic JSON
           </button>
         </div>
