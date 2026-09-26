@@ -327,3 +327,5 @@ export const InvestigationDesk: React.FC = () => {
     </div>
   );
 };
+
+export default InvestigationDesk;
