@@ -116,14 +116,32 @@ export const EnhancedIncidentReport: React.FC<EnhancedIncidentReportProps> = ({
 
           {/* Section 6: Duplicate Records */}
           <div className="border-l-4 border-orange-500 pl-4 pt-4">
-            <h3 className="text-lg font-bold text-white mb-3">6. Duplicate Records</h3>
-            <div className="text-sm text-slate-400">No duplicates detected</div>
+            <h3 className="text-lg font-bold text-white mb-3">6. Duplicate Records (Non-Destructive)</h3>
+            {incident.duplicates && incident.duplicates.length > 0 ? (
+              <div className="space-y-2">
+                {incident.duplicates.map((dup) => (
+                  <div key={dup.id} className="text-sm bg-slate-950/60 p-3 rounded border border-orange-800/40">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-orange-300">{dup.description}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-orange-950 text-orange-400 font-mono border border-orange-800">
+                        {dup.status}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      Matched Attributes: {dup.duplicateFields.join(", ")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400">No duplicate records detected</div>
+            )}
           </div>
 
           {/* Section 7: Contradictions */}
           {incident.conflicts.length > 0 && (
             <div className="border-l-4 border-red-500 pl-4 pt-4">
-              <h3 className="text-lg font-bold text-white mb-3">7. Contradictions</h3>
+              <h3 className="text-lg font-bold text-white mb-3">7. Contradictions & Discrepancies</h3>
               <div className="space-y-2">
                 {incident.conflicts.map((conflict) => (
                   <div key={conflict.id} className="text-sm bg-red-950/30 p-3 rounded border border-red-800/60">
@@ -138,28 +156,97 @@ export const EnhancedIncidentReport: React.FC<EnhancedIncidentReportProps> = ({
             </div>
           )}
 
-          {/* Section 8: Assumptions */}
+          {/* Section 8: Assumptions & Inferences */}
           <div className="border-l-4 border-indigo-500 pl-4 pt-4">
-            <h3 className="text-lg font-bold text-white mb-3">8. Assumptions</h3>
-            <div className="text-sm text-slate-400">No inferred relationships documented</div>
+            <h3 className="text-lg font-bold text-white mb-3">8. Assumptions & Forensic Truth Classification</h3>
+            {incident.assumptions && incident.assumptions.length > 0 ? (
+              <div className="space-y-2">
+                {incident.assumptions.map((assertion) => (
+                  <div key={assertion.id} className="text-sm bg-slate-950/60 p-3 rounded border border-indigo-800/40">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-200">{assertion.claim}</span>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded font-mono ${
+                          assertion.level === "CONFIRMED"
+                            ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                            : "bg-amber-950 text-amber-300 border border-amber-800"
+                        }`}
+                      >
+                        {assertion.displayBadge || assertion.level}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">{assertion.rationale}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400">No inferred relationships documented</div>
+            )}
           </div>
 
           {/* Section 9: Reporting Checklist */}
           <div className="border-l-4 border-cyan-500 pl-4 pt-4">
-            <h3 className="text-lg font-bold text-white mb-3">9. Reporting Checklist</h3>
-            <div className="text-sm text-slate-400">See detailed checklist before export</div>
+            <h3 className="text-lg font-bold text-white mb-3">9. Incident Reporting Checklist Status</h3>
+            {incident.checklist ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-slate-300 font-semibold">
+                    Readiness: {incident.checklist.completionPercentage}% Complete
+                  </span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                      incident.checklist.overallComplete
+                        ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                        : "bg-amber-950 text-amber-300 border border-amber-800"
+                    }`}
+                  >
+                    {incident.checklist.overallComplete ? "PASSED MANDATORY VALIDATION" : "PENDING DETAILS"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {incident.checklist.items.map((item) => (
+                    <div key={item.id} className="text-xs flex items-center gap-2 p-2 rounded bg-slate-950 border border-slate-800">
+                      <span className={item.status === "pass" ? "text-emerald-400 font-bold" : "text-amber-400 font-bold"}>
+                        {item.status === "pass" ? "✓" : "⚠"}
+                      </span>
+                      <span className="text-slate-300 truncate">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400">See detailed checklist before export</div>
+            )}
           </div>
 
-          {/* Section 10: Source References */}
+          {/* Section 10: Source Traceability Matrix */}
           <div className="border-l-4 border-pink-500 pl-4 pt-4">
-            <h3 className="text-lg font-bold text-white mb-3">10. Source References</h3>
-            <div className="space-y-1 text-sm">
-              {incident.evidence.map((ev) => (
-                <div key={ev.id} className="text-slate-300">
-                  • {ev.filename || ev.id} ({ev.type})
-                </div>
-              ))}
-            </div>
+            <h3 className="text-lg font-bold text-white mb-3">10. Granular Source Traceability Matrix</h3>
+            {incident.sourceReferences && incident.sourceReferences.length > 0 ? (
+              <div className="space-y-1.5 text-xs">
+                {incident.sourceReferences.slice(0, 8).map((ref) => (
+                  <div key={ref.id} className="flex justify-between items-center p-2 rounded bg-slate-950 border border-slate-800">
+                    <span className="font-mono text-blue-300">{ref.extractedValue}</span>
+                    <span className="text-slate-400 font-mono">
+                      {ref.filename} ({ref.location})
+                    </span>
+                  </div>
+                ))}
+                {incident.sourceReferences.length > 8 && (
+                  <div className="text-xs text-slate-500 italic mt-1">
+                    +{incident.sourceReferences.length - 8} more granular source coordinates mapped in full audit export
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1 text-sm">
+                {incident.evidence.map((ev) => (
+                  <div key={ev.id} className="text-slate-300">
+                    • {ev.filename || ev.id} ({ev.type})
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Section 11: Privacy / Redaction Status */}

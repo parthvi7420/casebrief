@@ -2,16 +2,22 @@ import React, { useState, useEffect } from "react";
 import { Incident, EvidenceItem } from "../types/incident";
 import { createDemoIncident } from "../logic/demoCase";
 import { processEvidence } from "../logic/incident";
+import { extractDatasetMappings } from "../logic/normalize";
 import { saveCase, loadCase } from "../store/caseStore";
 import { ProcessStepper } from "../components/ProcessStepper";
 import { ModuleRail } from "../components/ModuleRail";
 import { EvidencePanel } from "../components/EvidencePanel";
 import { ExtractionPanel } from "../components/ExtractionPanel";
+import { DataNormalizationUI } from "../components/DataNormalizationUI";
 import { PhishingTimeline } from "../components/PhishingTimeline";
 import { MissingPanel } from "../components/MissingPanel";
+import { DuplicatesPanel } from "../components/DuplicatesPanel";
 import { ConflictPanel } from "../components/ConflictPanel";
+import { AssumptionsPanel } from "../components/AssumptionsPanel";
 import { RedactionPanel } from "../components/RedactionPanel";
 import { IncidentReport } from "../components/IncidentReport";
+import { EnhancedIncidentReport } from "../components/EnhancedIncidentReport";
+import { ReportingChecklist } from "../components/ReportingChecklist";
 import {
   ShieldCheck,
   RotateCcw,
@@ -259,7 +265,7 @@ export const InvestigationDesk: React.FC = () => {
         </section>
 
         {/* Stage Investigation Panel Switcher */}
-        <section className="min-h-[500px]">
+        <section className="min-h-[500px] space-y-6">
           {activeStage === 1 && (
             <EvidencePanel
               evidence={incident.evidence}
@@ -268,9 +274,14 @@ export const InvestigationDesk: React.FC = () => {
           )}
 
           {activeStage === 2 && (
-            <ExtractionPanel
-              entities={incident.extractedEntities}
-            />
+            <div className="space-y-6">
+              <ExtractionPanel
+                entities={incident.extractedEntities}
+              />
+              <DataNormalizationUI
+                datasets={extractDatasetMappings(incident.evidence)}
+              />
+            </div>
           )}
 
           {activeStage === 3 && (
@@ -278,7 +289,11 @@ export const InvestigationDesk: React.FC = () => {
           )}
 
           {activeStage === 4 && (
-            <MissingPanel gaps={incident.gaps} />
+            <div className="space-y-6">
+              <MissingPanel gaps={incident.gaps} />
+              <DuplicatesPanel duplicates={incident.duplicates || []} />
+              <AssumptionsPanel assumptions={incident.assumptions || []} />
+            </div>
           )}
 
           {activeStage === 5 && (
@@ -290,7 +305,12 @@ export const InvestigationDesk: React.FC = () => {
           )}
 
           {activeStage === 7 && (
-            <IncidentReport incident={incident} />
+            <div className="space-y-6">
+              {incident.checklist && (
+                <ReportingChecklist items={incident.checklist.items} />
+              )}
+              <EnhancedIncidentReport incident={incident} />
+            </div>
           )}
         </section>
 
