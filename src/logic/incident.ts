@@ -7,6 +7,11 @@ import { extractEntities } from "../extract";
 import { redactText } from "./redaction";
 import { computeSHA256 } from "../utils/hashing";
 import { createDemoIncident } from "./demoCase";
+import { normalizeAllTransactions } from "./normalize";
+import { detectDuplicates } from "./duplicates";
+import { evaluateForensicAssumptions } from "./assumptions";
+import { buildSourceTraceabilityMatrix } from "./traceability";
+import { evaluateReportingChecklist } from "./checklist";
 
 export { createDemoIncident, loadDemoCase };
 
@@ -38,18 +43,41 @@ export async function processEvidence(evidenceList: EvidenceItem[]): Promise<Inc
   }
 
   // Entity extraction
-  const combinedText = processedEvidence.map(e => e.extractedText || "").join("\n");
+  const combinedText = processedEvidence.map((e) => e.extractedText || "").join("\n");
   const extractedEntities = extractEntities(combinedText);
 
   // Security modules execution
   const moduleResults = runAllSecurityModules(processedEvidence);
+
+  // Phase 2: Normalization
+  const normalizedRecords = normalizeAllTransactions(processedEvidence);
+
+  // Phase 2: Duplicate Detection
+  const duplicateFindings = detectDuplicates(normalizedRecords);
 
   // Reconstruct chronological timeline
   const timeline = buildChronologicalTimeline(processedEvidence, moduleResults.transactions);
 
   // Identify gaps & conflicts
   const gaps = identifyForensicGaps(processedEvidence, moduleResults.transactions);
-  const conflicts = identifyEvidenceConflicts(processedEvidence, moduleResults.transactions);
+  const conflicts = identifyEvidenceConflicts(processedEvidence, normalizedRecords);
+
+  // Phase 2: Assumptions & Forensic Truth Engine
+  const assumptions = evaluateForensicAssumptions(processedEvidence, normalizedRecords, timeline, gaps, conflicts);
+
+  // Phase 2: Source Traceability Matrix
+  const sourceReferences = buildSourceTraceabilityMatrix(processedEvidence, extractedEntities, normalizedRecords);
+
+  // Phase 2: Dynamic Reporting Checklist
+  const checklist = evaluateReportingChecklist(
+    processedEvidence,
+    extractedEntities,
+    timeline,
+    gaps,
+    conflicts,
+    normalizedRecords,
+    true
+  );
 
   // Derive channels
   const channels: Channel[] = [];
@@ -57,19 +85,19 @@ export async function processEvidence(evidenceList: EvidenceItem[]): Promise<Inc
     channels.push({
       type: "url",
       value: u.raw,
-      sourceEvidenceIds: processedEvidence.map(e => e.id),
+      sourceEvidenceIds: processedEvidence.map((e) => e.id),
     });
     channels.push({
       type: "domain",
       value: u.domain,
-      sourceEvidenceIds: processedEvidence.map(e => e.id),
+      sourceEvidenceIds: processedEvidence.map((e) => e.id),
     });
   }
   for (const phone of extractedEntities.phones) {
     channels.push({
       type: "app",
       value: `WhatsApp (+91 ${phone})`,
-      sourceEvidenceIds: processedEvidence.map(e => e.id),
+      sourceEvidenceIds: processedEvidence.map((e) => e.id),
     });
   }
 
@@ -94,6 +122,8 @@ export async function processEvidence(evidenceList: EvidenceItem[]): Promise<Inc
   let estimatedLoss = 0;
   if (moduleResults.transactions.length > 0) {
     estimatedLoss = moduleResults.transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+  } else if (normalizedRecords.length > 0) {
+    estimatedLoss = normalizedRecords.reduce((acc, t) => acc + (t.amount || 0), 0);
   } else if (extractedEntities.amounts.length > 0) {
     estimatedLoss = extractedEntities.amounts[0];
   }
@@ -134,6 +164,11 @@ export async function processEvidence(evidenceList: EvidenceItem[]): Promise<Inc
     timeline,
     gaps,
     conflicts,
+    duplicates: duplicateFindings,
+    assumptions,
+    normalizedRecords,
+    sourceReferences,
+    checklist,
     moduleHits: moduleResults.moduleHits,
     fraudAttemptLog: moduleResults.fraudAttemptLog,
     evidence: processedEvidence,

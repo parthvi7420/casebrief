@@ -5,6 +5,11 @@ import { identifyForensicGaps } from "./gaps";
 import { identifyEvidenceConflicts } from "./conflicts";
 import { extractEntities } from "../extract";
 import { redactText } from "./redaction";
+import { normalizeAllTransactions } from "./normalize";
+import { detectDuplicates } from "./duplicates";
+import { evaluateForensicAssumptions } from "./assumptions";
+import { buildSourceTraceabilityMatrix } from "./traceability";
+import { evaluateReportingChecklist } from "./checklist";
 
 export const DEMO_PHISHING_MESSAGE_TEXT = `[26/09/26, 10:34:00 AM] +919876543210: URGENT: Your bank account requires immediate KYC verification to avoid permanent account block. Click here immediately to verify: http://pay-secure-example.test/verify
 [26/09/26, 11:00:00 AM] +919876543210: We noticed an issue with your previous submission. Please send ₹5,000 to user@oksbi immediately to complete your verification and unblock your account.`;
@@ -14,8 +19,21 @@ export const DEMO_SUSPICIOUS_URL_TEXT = `http://pay-secure-example.test/verify`;
 export const DEMO_TRANSACTIONS_CSV_TEXT = `date,time,amount,currency,description,utr,account,upi_id
 2026-09-26,10:45,4999,INR,Debit transaction to user@oksbi,,XXXX4521,user@oksbi`;
 
+export const DEMO_BANK_EXPORT_CSV_TEXT = `transaction_id,posting_date,txn_time,debit,payee,sender_account,narration
+UTR998877665544,2026-09-26,10:45,4999,user@oksbi,XXXX4521,UPI Transfer to KYC Helpdesk
+UTR998877665544,2026-09-26,10:45,4999,user@oksbi,XXXX4521,Duplicate Gateway Settlement Entry
+UTR112233445566,2026-09-26,11:15,5000,fake-support@okaxis,XXXX4521,Second Extortion Payment Attempt`;
+
+export const DEMO_SCREENSHOT_OCR_TEXT = `PAYMENT CONFIRMATION
+Status: SUCCESS
+Paid to: user@oksbi
+Amount: ₹4,999.00
+Date: 26 Sep 2026, 10:45 AM
+UPI Ref: 426912345678
+From Account: State Bank of India XX4521`;
+
 /**
- * Creates the official benchmark Demo Case for CaseBrief
+ * Creates the official 5-file comprehensive benchmark Demo Case for CaseBrief
  */
 export function createDemoIncident(): Incident {
   const evidenceList: EvidenceItem[] = [
@@ -46,23 +64,62 @@ export function createDemoIncident(): Incident {
       redactedPreview: redactText(DEMO_TRANSACTIONS_CSV_TEXT),
       createdAt: "2026-09-26T10:45:00Z",
     },
+    {
+      id: "evidence-bank-export",
+      type: "csv",
+      filename: "bank_export.csv",
+      hash: "e8f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1",
+      extractedText: DEMO_BANK_EXPORT_CSV_TEXT,
+      redactedPreview: redactText(DEMO_BANK_EXPORT_CSV_TEXT),
+      createdAt: "2026-09-26T11:20:00Z",
+    },
+    {
+      id: "evidence-screenshot",
+      type: "screenshot",
+      filename: "screenshot.png",
+      hash: "f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2",
+      extractedText: DEMO_SCREENSHOT_OCR_TEXT,
+      redactedPreview: redactText(DEMO_SCREENSHOT_OCR_TEXT),
+      createdAt: "2026-09-26T10:46:00Z",
+    },
   ];
 
   // Combined text for master entity extraction
-  const fullText = evidenceList.map(e => e.extractedText || "").join("\n");
+  const fullText = evidenceList.map((e) => e.extractedText || "").join("\n");
   const extractedEntities = extractEntities(fullText);
 
   // Security modules
   const moduleResults = runAllSecurityModules(evidenceList);
 
+  // Phase 2: Normalization
+  const normalizedRecords = normalizeAllTransactions(evidenceList);
+
+  // Phase 2: Duplicate Detection
+  const duplicateFindings = detectDuplicates(normalizedRecords);
+
   // Timeline
   const timeline = buildChronologicalTimeline(evidenceList, moduleResults.transactions);
 
-  // Gaps
+  // Gaps & Conflicts
   const gaps = identifyForensicGaps(evidenceList, moduleResults.transactions);
+  const conflicts = identifyEvidenceConflicts(evidenceList, normalizedRecords);
 
-  // Conflicts
-  const conflicts = identifyEvidenceConflicts(evidenceList, moduleResults.transactions);
+  // Phase 2: Assumptions & Forensic Truth Engine
+  const assumptions = evaluateForensicAssumptions(evidenceList, normalizedRecords, timeline, gaps, conflicts);
+
+  // Phase 2: Source Traceability Matrix
+  const sourceReferences = buildSourceTraceabilityMatrix(evidenceList, extractedEntities, normalizedRecords);
+
+  // Phase 2: Dynamic Reporting Checklist
+  const checklist = evaluateReportingChecklist(
+    evidenceList,
+    extractedEntities,
+    timeline,
+    gaps,
+    conflicts,
+    normalizedRecords,
+    true
+  );
 
   return {
     meta: {
@@ -125,6 +182,11 @@ export function createDemoIncident(): Incident {
     timeline,
     gaps,
     conflicts,
+    duplicates: duplicateFindings,
+    assumptions,
+    normalizedRecords,
+    sourceReferences,
+    checklist,
     moduleHits: moduleResults.moduleHits,
     fraudAttemptLog: moduleResults.fraudAttemptLog,
     evidence: evidenceList,
