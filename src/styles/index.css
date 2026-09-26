@@ -2,20 +2,241 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===================================================================
+   CaseBrief Design System — Color Tokens & Typography
+   =================================================================== */
+
 @layer base {
+  :root {
+    /* — Background Palette — */
+    --cb-bg:             #080D18;
+    --cb-surface:        #0D1422;
+    --cb-elevated:       #131D2D;
+    --cb-border:         #243147;
+    --cb-border-subtle:  #1A2637;
+
+    /* — Primary Accent — */
+    --cb-primary:        #4F8CFF;
+    --cb-primary-soft:   #182D52;
+    --cb-primary-hover:  #6BA0FF;
+
+    /* — Text Palette — */
+    --cb-text:           #F1F5F9;
+    --cb-text-secondary: #CBD5E1;
+    --cb-muted:          #8B9AB2;
+    --cb-muted-dark:     #556376;
+
+    /* — Status Colors — */
+    --cb-success:        #26D9A0;
+    --cb-success-soft:   #0D2E24;
+    --cb-warning:        #F5B942;
+    --cb-warning-soft:   #2E2510;
+    --cb-critical:       #F0526F;
+    --cb-critical-soft:  #2E1018;
+
+    /* — Spacing base = 4px — */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 20px;
+    --sp-6: 24px;
+    --sp-8: 32px;
+    --sp-10: 40px;
+    --sp-12: 48px;
+
+    /* — Radius — */
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* — Transitions — */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    background-color: #f8fafc;
-    color: #0f172a;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--cb-bg);
+    color: var(--cb-text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+  }
+
+  /* Mono class for technical data */
+  .font-forensic {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Mono', 'Consolas', monospace;
+    font-feature-settings: 'liga' 0;
+  }
+
+  /* Tabular numbers for aligned data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Headings: tighter tracking */
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--cb-border);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--cb-muted-dark);
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--cb-primary);
+    color: var(--cb-text);
   }
 }
 
+@layer components {
+  /* Surface cards */
+  .cb-surface {
+    background-color: var(--cb-surface);
+    border: 1px solid var(--cb-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .cb-elevated {
+    background-color: var(--cb-elevated);
+    border: 1px solid var(--cb-border);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Pill badges */
+  .cb-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 9999px;
+  }
+
+  .cb-badge-hit {
+    background-color: var(--cb-success-soft);
+    color: var(--cb-success);
+    border: 1px solid rgba(38, 217, 160, 0.25);
+  }
+
+  .cb-badge-idle {
+    background-color: var(--cb-elevated);
+    color: var(--cb-muted);
+    border: 1px solid var(--cb-border);
+  }
+
+  .cb-badge-critical {
+    background-color: var(--cb-critical-soft);
+    color: var(--cb-critical);
+    border: 1px solid rgba(240, 82, 111, 0.25);
+  }
+
+  .cb-badge-warning {
+    background-color: var(--cb-warning-soft);
+    color: var(--cb-warning);
+    border: 1px solid rgba(245, 185, 66, 0.25);
+  }
+
+  /* Buttons */
+  .cb-btn-primary {
+    background: linear-gradient(135deg, var(--cb-primary) 0%, #3D6FD9 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--ease-out);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 3px rgba(79, 140, 255, 0.15);
+  }
+  .cb-btn-primary:hover {
+    background: linear-gradient(135deg, var(--cb-primary-hover) 0%, #4F8CFF 100%);
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.25);
+  }
+  .cb-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .cb-btn-ghost {
+    background: var(--cb-elevated);
+    color: var(--cb-text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--cb-border);
+    transition: all var(--duration-fast) var(--ease-out);
+    cursor: pointer;
+  }
+  .cb-btn-ghost:hover {
+    background: var(--cb-border);
+    color: var(--cb-text);
+  }
+  .cb-btn-ghost:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  /* Icon button */
+  .cb-icon-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--cb-elevated);
+    border: 1px solid var(--cb-border);
+    color: var(--cb-muted);
+    transition: all var(--duration-fast) var(--ease-out);
+    cursor: pointer;
+  }
+  .cb-icon-btn:hover {
+    background: var(--cb-border);
+    color: var(--cb-text);
+  }
+
+  /* Separator */
+  .cb-divider {
+    height: 1px;
+    background: var(--cb-border);
+    border: none;
+    margin: 0;
+  }
+}
+
+/* ===================================================================
+   Print Styles
+   =================================================================== */
 @media print {
   body {
     background-color: #ffffff !important;
     color: #000000 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    font-size: 11pt !important;
   }
 
   .no-print {

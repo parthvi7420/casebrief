@@ -1,0 +1,4 @@
+[26/09/26, 09:15:00 AM] +919988776655: Hello, I am calling from the HDFC Bank support team regarding your recent transaction query.
+[26/09/26, 09:16:15 AM] +919988776655: To proceed with the refund of ₹10,000, please verify your account status. Click here: http://secure-hdfc-verifypay.com/login
+[26/09/26, 09:17:30 AM] +919988776655: Please send ₹9,999 to support-verification@okaxis for KYC unblocking fee.
+[26/09/26, 09:18:45 AM] +919988776655: Transaction ID: 998877665544 for ₹9,999 sent to support-verification@okaxis.

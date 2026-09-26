@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { AlertTriangle, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, FileText } from "lucide-react";
 
 interface DuplicateRecord {
   id: string;
@@ -13,74 +13,55 @@ interface DuplicatesPanelProps {
 export const DuplicatesPanel: React.FC<DuplicatesPanelProps> = ({ duplicates }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  if (duplicates.length === 0) {
-    return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-emerald-400" />
-          Stage 4b: Duplicate Records
-        </h3>
-        <p className="text-sm text-slate-400">No duplicate records detected</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-amber-400" />
-            Stage 4b: Duplicate Records
+    <div className="cb-surface p-6 shadow-sm">
+      <div className="flex items-center justify-between pb-4 border-b border-cb-border mb-6">
+        <div>
+          <h3 className="text-sm font-bold text-cb-text flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-cb-warning" />
+            Duplicate Records
           </h3>
-          <span className="text-xs font-semibold px-3 py-1 bg-amber-950/80 text-amber-300 rounded-full border border-amber-500/30">
-            {duplicates.length} Duplicate Identified
-          </span>
+          <p className="text-xs text-cb-muted mt-1">
+            Redundant evidence entries across sources.
+          </p>
         </div>
+        <span className="cb-badge cb-badge-warning">{duplicates.length}</span>
+      </div>
 
-        <div className="space-y-4 mt-6">
-          {duplicates.map((dup) => (
-            <div
-              key={dup.id}
-              className="bg-slate-950/80 border border-amber-800/60 rounded-lg p-4"
+      <div className="space-y-3">
+        {duplicates.map((dup) => (
+          <div
+            key={dup.id}
+            className="bg-cb-bg/40 rounded-cb-md border border-cb-border"
+          >
+            <button
+              onClick={() => setExpandedId(expandedId === dup.id ? null : dup.id)}
+              className="w-full text-left p-3 flex items-center justify-between hover:bg-cb-surface transition-all rounded-cb-md"
             >
-              <button
-                onClick={() =>
-                  setExpandedId(expandedId === dup.id ? null : dup.id)
-                }
-                className="w-full text-left flex items-center justify-between hover:opacity-80 transition"
-              >
-                <div>
-                  <div className="font-bold text-white">Record ID: {dup.id}</div>
-                  <div className="text-sm text-slate-400">
-                    Found in {dup.sources.length} source(s)
-                  </div>
-                </div>
-                {expandedId === dup.id ? (
-                  <EyeOff className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <Eye className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-
-              {expandedId === dup.id && (
-                <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
-                  {dup.sources.map((source, idx) => (
-                    <div
-                      key={idx}
-                      className="text-sm bg-slate-900 p-2 rounded border border-slate-800"
-                    >
-                      <div className="text-slate-300">📄 {source.file}</div>
-                      <div className="text-xs text-slate-500 font-mono">
-                        {source.location}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div>
+                <div className="text-xs font-bold text-cb-text">ID: {dup.id}</div>
+                <div className="text-[10px] text-cb-muted">Found in {dup.sources.length} sources</div>
+              </div>
+              {expandedId === dup.id ? (
+                <EyeOff className="w-4 h-4 text-cb-muted" />
+              ) : (
+                <Eye className="w-4 h-4 text-cb-muted" />
               )}
-            </div>
-          ))}
-        </div>
+            </button>
+
+            {expandedId === dup.id && (
+              <div className="px-3 pb-3 pt-0 space-y-2 border-t border-cb-border-subtle mt-1 pt-2">
+                {dup.sources.map((source, idx) => (
+                  <div key={idx} className="text-xs bg-cb-surface p-2 rounded-cb-sm border border-cb-border flex items-center gap-2">
+                    <FileText className="w-3 h-3 text-cb-muted" />
+                    <span className="text-cb-text-secondary truncate">{source.file}</span>
+                    <span className="text-[10px] text-cb-muted font-mono ml-auto">{source.location}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );

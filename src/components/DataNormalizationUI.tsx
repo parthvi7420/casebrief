@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Database, Eye, EyeOff } from "lucide-react";
+import { Database, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export interface ColumnMapping {
   sourceColumn: string;
@@ -25,93 +25,69 @@ export const DataNormalizationUI: React.FC<DataNormalizationUIProps> = ({
     datasets[0]?.filename || null
   );
 
-  if (datasets.length === 0) {
-    return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <Database className="w-5 h-5 text-purple-400" />
-          Dataset Normalization
-        </h3>
-        <p className="text-sm text-slate-400">No datasets detected</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Database className="w-5 h-5 text-purple-400" />
+    <div className="cb-surface p-6 shadow-sm">
+      <div className="flex items-center justify-between pb-4 border-b border-cb-border mb-6">
+        <div>
+          <h3 className="text-sm font-bold text-cb-text flex items-center gap-2">
+            <Database className="w-5 h-5 text-cb-primary" />
             Dataset Normalization
           </h3>
-          <span className="text-xs font-semibold px-3 py-1 bg-purple-950/80 text-purple-300 rounded-full border border-purple-500/30">
-            {datasets.length} Datasets
-          </span>
+          <p className="text-xs text-cb-muted mt-1">
+            Map raw CSV columns to standardized case fields.
+          </p>
         </div>
-
-        <div className="space-y-4 mt-6">
-          {datasets.map((dataset) => (
-            <div key={dataset.filename} className="bg-slate-950/80 border border-slate-800 rounded-lg">
-              <button
-                onClick={() =>
-                  setExpandedDataset(
-                    expandedDataset === dataset.filename ? null : dataset.filename
-                  )
-                }
-                className="w-full text-left flex items-center justify-between p-4 hover:bg-slate-900/50 transition"
-              >
-                <div>
-                  <div className="font-bold text-white">{dataset.filename}</div>
-                  <div className="text-sm text-slate-400">
-                    {dataset.columnMappings.length} columns mapped
-                  </div>
-                </div>
-                {expandedDataset === dataset.filename ? (
-                  <EyeOff className="w-4 h-4 text-slate-400" />
-                ) : (
-                  <Eye className="w-4 h-4 text-slate-400" />
-                )}
-              </button>
-
-              {expandedDataset === dataset.filename && (
-                <div className="border-t border-slate-800 p-4 space-y-3">
-                  <div className="text-xs text-slate-400 uppercase tracking-wider font-bold mb-3">
-                    Column Mappings
-                  </div>
-                  {dataset.columnMappings.map((mapping, idx) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-3 gap-2 text-sm items-center p-3 bg-slate-900 rounded border border-slate-800"
-                    >
-                      <div>
-                        <div className="text-xs text-slate-500 uppercase">Source</div>
-                        <div className="font-mono text-slate-300">{mapping.sourceColumn}</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-slate-500">→</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-slate-500 uppercase">Maps To</div>
-                        <div className="font-mono text-emerald-300">{mapping.mappedField}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {onConfirm && (
-          <button
-            onClick={onConfirm}
-            className="mt-6 w-full px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-semibold rounded-lg transition"
-          >
-            Confirm Mappings
-          </button>
-        )}
+        <span className="cb-badge cb-badge-idle">{datasets.length}</span>
       </div>
+
+      <div className="space-y-3">
+        {datasets.map((dataset) => (
+          <div key={dataset.filename} className="bg-cb-bg/40 rounded-cb-md border border-cb-border">
+            <button
+              onClick={() =>
+                setExpandedDataset(
+                  expandedDataset === dataset.filename ? null : dataset.filename
+                )
+              }
+              className="w-full text-left p-3 flex items-center justify-between hover:bg-cb-surface transition-all rounded-cb-md"
+            >
+              <div>
+                <div className="text-xs font-bold text-cb-text">{dataset.filename}</div>
+                <div className="text-[10px] text-cb-muted">{dataset.columnMappings.length} columns mapped</div>
+              </div>
+              {expandedDataset === dataset.filename ? (
+                <EyeOff className="w-4 h-4 text-cb-muted shrink-0" />
+              ) : (
+                <Eye className="w-4 h-4 text-cb-muted shrink-0" />
+              )}
+            </button>
+
+            {expandedDataset === dataset.filename && (
+              <div className="px-3 pb-3 pt-0 border-t border-cb-border-subtle pt-2 space-y-2">
+                {dataset.columnMappings.map((mapping, idx) => (
+                  <div
+                    key={idx}
+                    className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center p-2 bg-cb-surface rounded-cb-sm border border-cb-border"
+                  >
+                    <div className="text-[10px] font-mono text-cb-text-secondary truncate">{mapping.sourceColumn}</div>
+                    <ArrowRight className="w-3 h-3 text-cb-muted" />
+                    <div className="text-[10px] font-mono font-bold text-cb-primary truncate">{mapping.mappedField}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {onConfirm && (
+        <button
+          onClick={onConfirm}
+          className="mt-6 w-full cb-btn-primary"
+        >
+          Confirm Mappings
+        </button>
+      )}
     </div>
   );
 };

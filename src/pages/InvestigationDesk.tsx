@@ -18,19 +18,13 @@ import { EnhancedIncidentReport } from "../components/EnhancedIncidentReport";
 import { RedactionPanel } from "../components/RedactionPanel";
 import {
   ShieldCheck,
-  RotateCcw,
   Sparkles,
-  ArrowRight,
-  ArrowLeft,
-  Lock,
-  Download,
   Printer,
-  Share2,
-  Database,
-  CheckCircle,
+  Download,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import {
-  exportShareableRedactedJSON,
   exportFullForensicJSON,
   printIncidentReport,
 } from "../utils/export";
@@ -40,14 +34,11 @@ export const InvestigationDesk: React.FC = () => {
   const [incident, setIncident] = useState<Incident>(() => createDemoIncident());
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  // Load latest case or demo case on mount
   useEffect(() => {
     async function initCase() {
       try {
         const saved = await loadCase("CB-2026-001");
-        if (saved) {
-          setIncident(saved);
-        }
+        if (saved) setIncident(saved);
       } catch (err) {
         console.warn("Storage load fallback:", err);
       }
@@ -55,460 +46,160 @@ export const InvestigationDesk: React.FC = () => {
     initCase();
   }, []);
 
-  // Save to IndexedDB on incident change
   useEffect(() => {
-    if (incident) {
-      saveCase(incident).catch((e) => console.warn("Save case error:", e));
-    }
+    if (incident) saveCase(incident).catch((e) => console.warn("Save case error:", e));
   }, [incident]);
 
-  // Load standard benchmark demo case
   const handleLoadDemo = () => {
     setIsProcessing(true);
     setTimeout(() => {
-      const demo = createDemoIncident();
-      setIncident(demo);
+      setIncident(createDemoIncident());
       setIsProcessing(false);
     }, 150);
   };
 
-  // Reset desk to blank investigation state
   const handleReset = () => {
-    const blankIncident: Incident = {
+    setIncident({
       meta: {
-        caseId: `CB-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
-        title: "New Digital Fraud Investigation",
+        caseId: `CB-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+        title: "New Forensic Investigation",
         createdAt: new Date().toISOString(),
-        status: "draft",
+        status: "Draft",
       },
-      summary: {
-        fraudType: "other",
-        estimatedLoss: 0,
-        currency: "INR",
-        firstEvent: "N/A",
-        lastEvent: "N/A",
-      },
+      summary: { fraudType: "phishing", estimatedLoss: 0, currency: "INR", firstEvent: "--", lastEvent: "--" },
       parties: [],
       channels: [],
       transactions: [],
       timeline: [],
       gaps: [],
       conflicts: [],
-      moduleHits: [
-        {
-          module: "Message Analyzer",
-          status: "idle",
-          reasons: ["No chat or message evidence ingested"],
-          evidenceIds: [],
-        },
-        {
-          module: "URL Reputation Check",
-          status: "idle",
-          reasons: ["No URLs or domains detected"],
-          evidenceIds: [],
-        },
-        {
-          module: "Network Monitoring",
-          status: "idle",
-          reasons: ["No DNS or network traces detected"],
-          evidenceIds: [],
-        },
-        {
-          module: "Threat Intelligence Feed",
-          status: "idle",
-          reasons: ["No IOC matches detected"],
-          evidenceIds: [],
-        },
-        {
-          module: "Transaction Auditor",
-          status: "idle",
-          reasons: ["No bank records or payment transactions ingested"],
-          evidenceIds: [],
-        },
-        {
-          module: "Fraud Attempt Log",
-          status: "idle",
-          reasons: ["No threat events registered in audit log"],
-          evidenceIds: [],
-        },
-      ],
+      duplicates: [],
+      assumptions: [],
+      normalizedRecords: [],
+      sourceReferences: [],
+      checklist: {
+        incidentDate: false, incidentTime: false, fraudType: false, amount: false,
+        transactionReference: false, suspiciousUrl: false, counterparty: false,
+        evidenceAttached: false, timelineCreated: false, missingDataDocumented: false,
+        contradictionsDocumented: false, redactionApplied: false, overallComplete: false,
+        completionPercentage: 0, items: []
+      },
+      moduleHits: [],
       fraudAttemptLog: [],
       evidence: [],
-      extractedEntities: {
-        urls: [],
-        upiIds: [],
-        utrs: [],
-        phones: [],
-        emails: [],
-        amounts: [],
-        formattedAmounts: [],
-        dates: [],
-        accounts: [],
-        keywords: [],
-      },
-    };
-
-    setIncident(blankIncident);
-    setActiveStage(1);
+      extractedEntities: { dates: [], amounts: [], formattedAmounts: [], urls: [], phones: [], emails: [], upiIds: [], utrs: [], accounts: [], keywords: [] },
+    });
   };
 
-  // Evidence list update handler (triggers full deterministic reconstruction)
-  const handleUpdateEvidence = async (newEvidenceList: EvidenceItem[]) => {
+  const handleUpdateEvidence = async (updatedEvidence: EvidenceItem[]) => {
     setIsProcessing(true);
     try {
-      const updatedIncident = await processEvidence(newEvidenceList);
+      const updatedIncident = await processEvidence(updatedEvidence);
       setIncident(updatedIncident);
     } catch (err) {
-      console.error("Evidence processing error:", err);
+      console.error("Failed to process evidence:", err);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleAddSingleEvidence = (item: EvidenceItem) => {
-    const updatedList = [...incident.evidence, item];
-    handleUpdateEvidence(updatedList);
+  const handleAddSingleEvidence = async (newItem: EvidenceItem) => {
+    const updatedEvidence = [...incident.evidence, newItem];
+    await handleUpdateEvidence(updatedEvidence);
   };
 
-  // Use Person 2's dynamic checklist if available, otherwise calculate locally
-  const checklistItems: Array<{
-    id: string;
-    label: string;
-    description: string;
-    status: "complete" | "incomplete" | "warning";
-    category: string;
-  }> = incident.checklist?.items?.length
-    ? incident.checklist.items.map((item) => ({
-        id: item.id || item.key || item.field || item.label,
-        label: item.label,
-        description: item.description || "",
-        status:
-          item.status === "pass" || item.passed
-            ? "complete" as const
-            : item.status === "warning"
-              ? "warning" as const
-              : "incomplete" as const,
-        category: "General Reporting Criteria",
-      }))
-    : [
-    {
-      id: "case-info",
-      label: "Case number documented",
-      description: `Case ID: ${incident.meta.caseId}`,
-      status: incident.meta.caseId ? "complete" : "incomplete",
-      category: "Incident Details",
-    },
-    {
-      id: "fraud-type",
-      label: "Fraud type identified",
-      description: `Type: ${incident.summary.fraudType}`,
-      status: incident.summary.fraudType && incident.summary.fraudType !== "other" ? "complete" : "incomplete",
-      category: "Incident Details",
-    },
-    {
-      id: "loss-amount",
-      label: "Estimated loss recorded",
-      description: `₹${incident.summary.estimatedLoss.toLocaleString()}`,
-      status: incident.summary.estimatedLoss > 0 ? "complete" : "incomplete",
-      category: "Incident Details",
-    },
-    {
-      id: "timeline",
-      label: "Chronological timeline built",
-      description: `${incident.timeline.length} event(s) reconstructed`,
-      status: incident.timeline.length > 0 ? "complete" : "incomplete",
-      category: "Analysis",
-    },
-    {
-      id: "evidence-collected",
-      label: "Evidence sources documented",
-      description: `${incident.evidence.length} evidence item(s) ingested`,
-      status: incident.evidence.length > 0 ? "complete" : "incomplete",
-      category: "Analysis",
-    },
-    {
-      id: "gaps-identified",
-      label: "Missing information identified",
-      description: `${incident.gaps.length} investigatory gap(s) documented`,
-      status: "complete",
-      category: "Analysis",
-    },
-    {
-      id: "conflicts-identified",
-      label: "Contradictions identified",
-      description: `${incident.conflicts.length} discrepanc(ies) found`,
-      status: "complete",
-      category: "Analysis",
-    },
-    {
-      id: "redaction-applied",
-      label: "Sensitive data redacted",
-      description: "PII auto-masked in shareable outputs",
-      status: "complete",
-      category: "Privacy",
-    },
-    {
-      id: "modules-fired",
-      label: "Security modules executed",
-      description: `${incident.moduleHits.filter((m) => m.status === "hit").length} of ${incident.moduleHits.length} modules triggered`,
-      status: incident.moduleHits.some((m) => m.status === "hit") ? "complete" : "warning",
-      category: "Security Analysis",
-    },
-    {
-      id: "report-ready",
-      label: "Report ready for export",
-      description: "11-section incident report generated",
-      status: "complete",
-      category: "Reporting",
-    },
-    {
-      id: "export-verified",
-      label: "Exports verified",
-      description: "Manual verification required before submission",
-      status: "warning",
-      category: "Reporting",
-    },
-  ];
-
-  // Demo dataset mappings
-  const demoDatasets = [
-    {
-      filename: "transactions.csv",
-      columnMappings: [
-        { sourceColumn: "transaction_date", mappedField: "Date", dataType: "timestamp" },
-        { sourceColumn: "value", mappedField: "Amount", dataType: "currency" },
-        { sourceColumn: "utr_number", mappedField: "Transaction Reference", dataType: "string" },
-        { sourceColumn: "remarks", mappedField: "Description", dataType: "string" },
-      ],
-    },
-    {
-      filename: "bank_export.csv",
-      columnMappings: [
-        { sourceColumn: "Date", mappedField: "Date", dataType: "timestamp" },
-        { sourceColumn: "Amount", mappedField: "Amount", dataType: "currency" },
-        { sourceColumn: "Transaction_ID", mappedField: "Transaction Reference", dataType: "string" },
-        { sourceColumn: "Description", mappedField: "Description", dataType: "string" },
-      ],
-    },
-  ];
-
-  // Demo duplicate records
-  const demoDuplicates = [
-    {
-      id: "123456789012",
-      sources: [
-        { file: "transactions.csv", location: "Row 12" },
-        { file: "bank_export.csv", location: "Row 27" },
-      ],
-    },
-  ];
-
-  // Demo assumptions
-  const demoAssumptions: Array<{
-    id: string;
-    description: string;
-    reason: string;
-    status: "unverified" | "verified" | "disputed";
-    evidenceIds: string[];
-  }> = [
-    {
-      id: "assumption-1",
-      description: "10:45 transaction corresponds to 10:34 payment request",
-      reason: "Temporal proximity + matching payment context + same UPI ID",
-      status: "unverified",
-      evidenceIds: ["evidence-msg", "evidence-csv"],
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
-      {/* Top Global Command Bar */}
-      <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50 no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Brand & Case Meta */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-inner">
+    <div className="min-h-screen bg-cb-bg text-cb-text antialiased">
+      {/* Compact Header (~72px) */}
+      <header className="h-[72px] sticky top-0 z-50 bg-cb-surface/80 backdrop-blur border-b border-cb-border flex items-center no-print">
+        <div className="w-full max-w-[1440px] mx-auto px-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-cb-md bg-cb-primary-soft flex items-center justify-center text-cb-primary">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-black tracking-tight text-white">
-                  CASEBRIEF
-                </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800 font-bold">
-                  v2.0 ENHANCED
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1 font-semibold">
-                  <Lock className="w-2.5 h-2.5" />
-                  100% OFFLINE
-                </span>
-              </div>
-              <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                <span>Case Ref: <strong className="text-slate-200 font-mono">{incident.meta.caseId}</strong></span>
-                <span>•</span>
-                <span className="text-slate-400 font-medium truncate max-w-xs">{incident.meta.title}</span>
-              </div>
+              <h1 className="text-sm font-black tracking-tight text-white flex items-center gap-2">
+                CASEBRIEF <span className="text-[10px] font-mono px-1.5 rounded-cb-sm bg-cb-border-subtle text-cb-muted font-normal">v2.0</span>
+              </h1>
+              <p className="text-xs text-cb-muted font-mono">{incident.meta.caseId} | {incident.meta.title}</p>
             </div>
           </div>
 
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={handleLoadDemo}
-              disabled={isProcessing}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-md shadow-blue-950 transition-all cursor-pointer disabled:opacity-50"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Load Demo
+          <div className="flex items-center gap-2">
+            <button onClick={handleLoadDemo} className="cb-btn-ghost flex items-center gap-2 text-xs">
+              <Sparkles className="w-4 h-4" /> Load Phishing Benchmark (5 Evidence Files)
             </button>
-
-            <button
-              onClick={handleReset}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset
+            <button onClick={handleReset} className="cb-btn-ghost flex items-center gap-2 text-xs">
+              Reset Desk
             </button>
-
-            <div className="h-4 w-px bg-slate-800 hidden sm:block" />
-
-            <button
-              onClick={() => exportShareableRedactedJSON(incident)}
-              title="Export Redacted JSON for Safe Sharing"
-              className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-emerald-400 rounded-lg border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => exportFullForensicJSON(incident)}
-              title="Download Full Forensic JSON File"
-              className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={printIncidentReport}
-              title="Print Official Incident Report"
-              className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-blue-400 rounded-lg border border-slate-700 transition-colors cursor-pointer"
-            >
+            <button onClick={printIncidentReport} className="cb-icon-btn">
               <Printer className="w-4 h-4" />
+            </button>
+            <button onClick={() => exportFullForensicJSON(incident)} className="cb-icon-btn">
+              <Download className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* 7-Stage Process Stepper Navigation */}
-        <section className="no-print">
-          <ProcessStepper
-            currentStep={activeStage}
-            onStepClick={setActiveStage}
-          />
-        </section>
+      {/* Workspace */}
+      <div className="max-w-[1440px] mx-auto p-4 md:p-6 space-y-6">
+        {/* Stepper */}
+        <ProcessStepper currentStep={activeStage} onStepClick={setActiveStage} />
 
-        {/* 6-Module Live Cybersecurity Status Rail */}
-        <section className="no-print">
-          <ModuleRail moduleHits={incident.moduleHits} />
-        </section>
-
-        {/* Stage Investigation Panel Switcher */}
-        <section className="min-h-[500px] space-y-6">
-          {activeStage === 1 && (
-            <EvidencePanel
-              evidence={incident.evidence}
-              onAddEvidence={handleAddSingleEvidence}
-            />
-          )}
-
-          {activeStage === 2 && (
-            <ExtractionPanel
-              entities={incident.extractedEntities}
-            />
-          )}
-
-          {activeStage === 3 && (
-            <PhishingTimeline timeline={incident.timeline} />
-          )}
-
-          {activeStage === 4 && (
-            <div className="space-y-6">
-              {/* Data Quality Section */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
-                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                  <Database className="w-6 h-6 text-purple-400" />
-                  Data Quality Analysis
-                </h3>
-                <div className="space-y-6">
-                  <MissingPanel gaps={incident.gaps} />
-                  <DuplicatesPanel duplicates={incident.duplicates?.length ? incident.duplicates.map(d => ({
-                    id: d.id,
-                    sources: [
-                      { file: d.recordA.sourceEvidenceId, location: d.recordA.transactionReference || `Row ${d.recordA.sourceRowIndex || 1}` },
-                      { file: d.recordB.sourceEvidenceId, location: d.recordB.transactionReference || `Row ${d.recordB.sourceRowIndex || 1}` },
-                    ]
-                  })) : demoDuplicates} />
-                  <ConflictPanel conflicts={incident.conflicts} />
-                  <AssumptionsPanel assumptions={incident.assumptions?.length ? incident.assumptions.map(a => ({
-                    id: a.id,
-                    description: a.claim,
-                    reason: a.rationale,
-                    status: a.verified ? "verified" as const : a.level === "ASSUMPTION" ? "unverified" as const : "disputed" as const,
-                    evidenceIds: a.sourceEvidenceIds,
-                  })) : demoAssumptions} />
-                  <DataNormalizationUI datasets={demoDatasets} />
-                </div>
-              </div>
+        {/* Workspace: 68% left / 32% rail */}
+        <div className="grid grid-cols-[1fr,320px] gap-6 items-start">
+          <main className="space-y-6">
+            <div className="cb-surface p-6">
+              {/* STAGE SWITCHER */}
+              {isProcessing && <div className="text-center p-4">Processing investigation...</div>}
+              {!isProcessing && (
+                <>
+                  {activeStage === 1 && <EvidencePanel evidence={incident.evidence} onAddEvidence={handleAddSingleEvidence} />}
+                  {activeStage === 2 && <ExtractionPanel entities={incident.entities} />}
+                  {activeStage === 3 && <PhishingTimeline timeline={incident.timeline} />}
+                  {activeStage === 4 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <MissingPanel gaps={incident.gaps} />
+                      <ConflictPanel conflicts={incident.conflicts} />
+                      <DuplicatesPanel duplicates={incident.duplicates} />
+                      <AssumptionsPanel assumptions={incident.assumptions} />
+                      <div className="md:col-span-2">
+                        <DataNormalizationUI datasets={incident.datasets} />
+                      </div>
+                    </div>
+                  )}
+                  {activeStage === 5 && <ReportingChecklist items={incident.checklistItems} />}
+                  {activeStage === 6 && <RedactionPanel incident={incident} />}
+                  {activeStage === 7 && <EnhancedIncidentReport incident={incident} />}
+                </>
+              )}
             </div>
-          )}
+            {/* Bottom Stepper Navigation */}
+            <div className="flex items-center justify-between pt-6 border-t border-cb-border mt-6">
+              <button
+                onClick={() => setActiveStage((prev) => Math.max(1, prev - 1))}
+                disabled={activeStage === 1}
+                className="cb-btn-ghost flex items-center gap-2 disabled:opacity-30 text-xs"
+              >
+                <ArrowLeft className="w-4 h-4" /> Previous Stage
+              </button>
+              <span className="text-xs font-mono text-cb-muted">Stage {activeStage} of 7</span>
+              <button
+                onClick={() => setActiveStage((prev) => Math.min(7, prev + 1))}
+                disabled={activeStage === 7}
+                className="cb-btn-primary flex items-center gap-2 disabled:opacity-30 text-xs"
+              >
+                Next Stage <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </main>
 
-          {activeStage === 5 && (
-            <ReportingChecklist items={checklistItems} />
-          )}
-
-          {activeStage === 6 && (
-            <RedactionPanel incident={incident} />
-          )}
-
-          {activeStage === 7 && (
-            <EnhancedIncidentReport incident={incident} />
-          )}
-        </section>
-
-        {/* Bottom Step Navigation Control Bar */}
-        <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between no-print">
-          <button
-            onClick={() => setActiveStage((prev) => Math.max(1, prev - 1))}
-            disabled={activeStage === 1}
-            className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-2 transition-all cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Previous
-          </button>
-
-          <div className="text-xs font-mono text-slate-400">
-            Stage <strong className="text-white">{activeStage}</strong> of <strong>7</strong>
-          </div>
-
-          <button
-            onClick={() => setActiveStage((prev) => Math.min(7, prev + 1))}
-            disabled={activeStage === 7}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-30 disabled:pointer-events-none flex items-center gap-2 transition-all cursor-pointer shadow-sm"
-          >
-            Next
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </section>
-      </main>
-
-      {/* Footer Disclaimer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500 no-print">
-        CaseBrief Forensic Reconstruction Desk • Zero External API Calls • Deterministic Evidence Processing • ISO/IEC 27037 Compliant • Enhanced Data Quality Analysis
-      </footer>
+          <aside className="sticky top-[96px]">
+            <ModuleRail moduleHits={incident.moduleHits} />
+          </aside>
+        </div>
+      </div>
     </div>
   );
 };
-
-export default InvestigationDesk;

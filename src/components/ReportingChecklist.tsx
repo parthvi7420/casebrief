@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, X, AlertCircle } from "lucide-react";
+import { Check, X, AlertCircle, ListChecks } from "lucide-react";
 import { ChecklistItem as IncidentChecklistItem } from "../types/incident";
 
 export interface ChecklistItem extends Omit<Partial<IncidentChecklistItem>, "status"> {
@@ -7,6 +7,7 @@ export interface ChecklistItem extends Omit<Partial<IncidentChecklistItem>, "sta
   label: string;
   status?: "complete" | "incomplete" | "warning" | "pass" | "fail";
   category?: string;
+  description?: string;
 }
 
 interface ReportingChecklistProps {
@@ -20,80 +21,67 @@ export const ReportingChecklist: React.FC<ReportingChecklistProps> = ({ items })
   const completed = items.filter((i) => isComplete(i.status)).length;
   const progress = items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
 
-  const categories = Array.from(new Set(items.map((i) => i.category || "General Reporting Criteria")));
+  const categories = Array.from(new Set(items.map((i) => i.category || "Reporting Criteria")));
 
   return (
-    <div className="space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            ✓ Incident Reporting Checklist
-          </h3>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-white">{progress}%</div>
-            <div className="text-xs text-slate-400">
-              {completed} / {items.length} Complete
-            </div>
-          </div>
+    <div className="cb-surface p-6 shadow-sm space-y-6">
+      <div className="flex items-center justify-between pb-4 border-b border-cb-border">
+        <h3 className="text-lg font-bold text-cb-text flex items-center gap-2">
+          <ListChecks className="w-5 h-5 text-cb-primary" />
+          Reporting Checklist
+        </h3>
+        <div className="text-right">
+          <div className="text-lg font-bold text-cb-primary">{progress}%</div>
+          <div className="text-[10px] text-cb-muted">{completed} / {items.length} Complete</div>
         </div>
+      </div>
 
-        {/* Progress Bar */}
-        <div className="mt-4 w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className={`h-full transition-all ${
-              progress === 100
-                ? "bg-emerald-500"
-                : progress >= 75
-                  ? "bg-blue-500"
-                  : progress >= 50
-                    ? "bg-amber-500"
-                    : "bg-red-500"
-            }`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+      <div className="w-full h-1.5 bg-cb-surface rounded-full overflow-hidden">
+        <div
+          className="h-full transition-all bg-cb-primary"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
 
-        {/* Checklist by Category */}
-        <div className="space-y-6 mt-6">
-          {categories.map((category) => {
-            const categoryItems = items.filter((i) => (i.category || "General Reporting Criteria") === category);
-            return (
-              <div key={category}>
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                  {category}
-                </div>
-                <div className="space-y-2">
-                  {categoryItems.map((item, idx) => (
-                    <div
-                      key={item.id || `chk-item-${idx}`}
-                      className={`flex items-center gap-3 p-3 rounded-lg border ${
-                        isComplete(item.status)
-                          ? "bg-emerald-950/30 border-emerald-800/60"
-                          : isWarning(item.status)
-                            ? "bg-amber-950/30 border-amber-800/60"
-                            : "bg-slate-950/60 border-slate-800"
-                      }`}
-                    >
-                      {isComplete(item.status) ? (
-                        <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                      ) : isWarning(item.status) ? (
-                        <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                      ) : (
-                        <X className="w-4 h-4 text-red-400 flex-shrink-0" />
-                      )}
-                      <div>
-                        <span className="text-sm text-slate-200">{item.label}</span>
-                        {item.description && (
-                          <div className="text-xs text-slate-400 mt-0.5">{item.description}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+      <div className="space-y-6">
+        {categories.map((category) => {
+          const categoryItems = items.filter((i) => (i.category || "Reporting Criteria") === category);
+          return (
+            <div key={category}>
+              <div className="text-[10px] font-bold text-cb-muted uppercase tracking-wider mb-3">
+                {category}
               </div>
-            );
-          })}
-        </div>
+              <div className="space-y-2">
+                {categoryItems.map((item, idx) => (
+                  <div
+                    key={item.id || `chk-item-${idx}`}
+                    className={`flex items-center gap-3 p-3 rounded-cb-md border ${
+                      isComplete(item.status)
+                        ? "bg-cb-success/5 border-cb-success/20"
+                        : isWarning(item.status)
+                          ? "bg-cb-warning/5 border-cb-warning/20"
+                          : "bg-cb-bg/40 border-cb-border"
+                    }`}
+                  >
+                    {isComplete(item.status) ? (
+                      <Check className="w-4 h-4 text-cb-success flex-shrink-0" />
+                    ) : isWarning(item.status) ? (
+                      <AlertCircle className="w-4 h-4 text-cb-warning flex-shrink-0" />
+                    ) : (
+                      <X className="w-4 h-4 text-cb-critical flex-shrink-0" />
+                    )}
+                    <div>
+                      <span className="text-xs font-bold text-cb-text">{item.label}</span>
+                      {item.description && (
+                         <div className="text-[10px] text-cb-muted mt-0.5">{item.description}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

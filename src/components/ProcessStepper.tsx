@@ -1,14 +1,5 @@
 import React from "react";
-import {
-  FileSearch,
-  Cpu,
-  Clock,
-  AlertCircle,
-  Scale,
-  ShieldCheck,
-  FileText,
-  CheckCircle2,
-} from "lucide-react";
+import { Check } from "lucide-react";
 
 export interface StepItem {
   id: number;
@@ -18,13 +9,13 @@ export interface StepItem {
 }
 
 export const INVESTIGATION_STEPS: StepItem[] = [
-  { id: 1, label: "Evidence Intake", sublabel: "SHA-256 Custody", icon: FileSearch },
-  { id: 2, label: "Entity Extraction", sublabel: "Deterministic Parser", icon: Cpu },
-  { id: 3, label: "Incident Timeline", sublabel: "4-Event Sequence", icon: Clock },
-  { id: 4, label: "Data Gaps", sublabel: "Missing UTR Audit", icon: AlertCircle },
-  { id: 5, label: "Contradictions", sublabel: "₹5K vs ₹4,999 Diff", icon: Scale },
-  { id: 6, label: "Privacy Sandbox", sublabel: "PII Masking & Toggle", icon: ShieldCheck },
-  { id: 7, label: "Executive Report", sublabel: "Print & JSON Export", icon: FileText },
+  { id: 1, label: "Evidence Intake", sublabel: "Ingestion & Hashing", icon: Check },
+  { id: 2, label: "Entity Extraction", sublabel: "Regex & IOC Parsing", icon: Check },
+  { id: 3, label: "Incident Timeline", sublabel: "Chronology & Context", icon: Check },
+  { id: 4, label: "Data Quality & Gaps", sublabel: "Conflicts & Normalization", icon: Check },
+  { id: 5, label: "Reporting Checklist", sublabel: "Forensic Readiness", icon: Check },
+  { id: 6, label: "Privacy Sandbox", sublabel: "PII Masking & Redaction", icon: Check },
+  { id: 7, label: "Executive Report", sublabel: "Final Dossier & Export", icon: Check },
 ];
 
 interface ProcessStepperProps {
@@ -36,52 +27,73 @@ interface ProcessStepperProps {
 export const ProcessStepper: React.FC<ProcessStepperProps> = ({
   currentStep,
   onStepClick,
-  completedSteps = [1, 2, 3, 4, 5, 6, 7],
+  completedSteps = [],
 }) => {
   return (
-    <div className="bg-slate-900 border-b border-slate-800 px-4 py-3 shadow-md sticky top-0 z-40 no-print">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-thin">
+    <div className="w-full bg-cb-surface border-b border-cb-border px-4 py-2 overflow-x-auto scrollbar-none">
+      <div className="max-w-[1440px] mx-auto flex items-center justify-between min-w-[900px] gap-1">
         {INVESTIGATION_STEPS.map((step, idx) => {
-          const Icon = step.icon;
           const isActive = currentStep === step.id;
-          const isCompleted = completedSteps.includes(step.id);
+          const isCompleted = completedSteps.includes(step.id) || step.id < currentStep;
+          const StepIcon = step.icon;
 
           return (
             <React.Fragment key={step.id}>
               <button
                 onClick={() => onStepClick(step.id)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-all shrink-0 cursor-pointer ${
+                className={`flex-1 flex items-center gap-2.5 px-3 py-2 rounded-cb-md border transition-all text-left group ${
                   isActive
-                    ? "bg-blue-600/20 border border-blue-500 text-blue-400 shadow-sm"
-                    : "hover:bg-slate-800/80 border border-transparent text-slate-400 hover:text-slate-200"
+                    ? "bg-cb-primary-soft/60 border-cb-primary text-cb-text shadow-sm"
+                    : isCompleted
+                    ? "bg-cb-surface border-cb-border-subtle hover:border-cb-border text-cb-text-secondary"
+                    : "bg-cb-bg/40 border-transparent hover:border-cb-border-subtle text-cb-muted"
                 }`}
               >
+                {/* Step Number / Icon Badge */}
                 <div
-                  className={`w-8 h-8 rounded-md flex items-center justify-center font-bold text-xs shrink-0 ${
+                  className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 font-forensic text-xs font-bold transition-colors ${
                     isActive
-                      ? "bg-blue-600 text-white"
+                      ? "bg-cb-primary text-white shadow-sm"
                       : isCompleted
-                      ? "bg-slate-800 text-emerald-400 border border-emerald-500/30"
-                      : "bg-slate-800 text-slate-500"
+                      ? "bg-cb-success-soft text-cb-success border border-cb-success/30"
+                      : "bg-cb-elevated text-cb-muted border border-cb-border"
                   }`}
                 >
                   {isCompleted && !isActive ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <StepIcon className="w-3 h-3 stroke-[3]" />
                   ) : (
-                    <Icon className="w-4 h-4" />
+                    <span>0{step.id}</span>
                   )}
                 </div>
-                <div className="hidden md:block">
-                  <div className="text-xs font-semibold tracking-wide flex items-center gap-1.5">
-                    <span>{step.id}.</span> {step.label}
+
+                {/* Step Label & Sublabel */}
+                <div className="min-w-0 overflow-hidden">
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={`text-xs font-semibold truncate ${
+                        isActive
+                          ? "text-white font-bold"
+                          : isCompleted
+                          ? "text-cb-text"
+                          : "text-cb-muted group-hover:text-cb-text-secondary"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
                   </div>
-                  <div className="text-[10px] text-slate-500 truncate max-w-[120px]">
+                  <div className="text-[10px] text-cb-muted truncate leading-none mt-0.5 font-sans">
                     {step.sublabel}
                   </div>
                 </div>
               </button>
+
+              {/* Connecting Divider between steps */}
               {idx < INVESTIGATION_STEPS.length - 1 && (
-                <div className="hidden lg:block w-4 h-0.5 bg-slate-800 shrink-0" />
+                <div
+                  className={`h-4 w-px shrink-0 transition-colors ${
+                    step.id < currentStep ? "bg-cb-primary/40" : "bg-cb-border-subtle"
+                  }`}
+                />
               )}
             </React.Fragment>
           );
