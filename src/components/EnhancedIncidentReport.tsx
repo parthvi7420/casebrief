@@ -117,7 +117,23 @@ export const EnhancedIncidentReport: React.FC<EnhancedIncidentReportProps> = ({
           {/* Section 6: Duplicate Records */}
           <div className="border-l-4 border-orange-500 pl-4 pt-4">
             <h3 className="text-lg font-bold text-white mb-3">6. Duplicate Records</h3>
-            <div className="text-sm text-slate-400">No duplicates detected</div>
+            {incident.duplicates && incident.duplicates.length > 0 ? (
+              <div className="space-y-2">
+                {incident.duplicates.map((dup) => (
+                  <div key={dup.id} className="text-sm bg-orange-950/30 p-3 rounded border border-orange-800/60">
+                    <div className="font-bold text-white">{dup.type}: {dup.description}</div>
+                    <div className="text-xs text-orange-300 mt-1">
+                      {dup.recordA.sourceEvidenceId} ↔ {dup.recordB.sourceEvidenceId}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-0.5">
+                      Matched on: {dup.duplicateFields.join(", ")} — Severity: {dup.severity}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400">No duplicates detected</div>
+            )}
           </div>
 
           {/* Section 7: Contradictions */}
@@ -141,7 +157,22 @@ export const EnhancedIncidentReport: React.FC<EnhancedIncidentReportProps> = ({
           {/* Section 8: Assumptions */}
           <div className="border-l-4 border-indigo-500 pl-4 pt-4">
             <h3 className="text-lg font-bold text-white mb-3">8. Assumptions</h3>
-            <div className="text-sm text-slate-400">No inferred relationships documented</div>
+            {incident.assumptions && incident.assumptions.length > 0 ? (
+              <div className="space-y-2">
+                {incident.assumptions.map((asm) => (
+                  <div key={asm.id} className="text-sm bg-indigo-950/30 p-3 rounded border border-indigo-800/60">
+                    <div className="font-bold text-white">{asm.claim}</div>
+                    <div className="text-xs text-indigo-300 mt-1">{asm.rationale}</div>
+                    <div className="text-xs text-slate-400 mt-0.5 flex justify-between">
+                      <span>Sources: {asm.sourceEvidenceIds.join(", ")}</span>
+                      <span className="font-semibold text-indigo-400">{asm.level}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400">No inferred relationships documented</div>
+            )}
           </div>
 
           {/* Section 9: Reporting Checklist */}

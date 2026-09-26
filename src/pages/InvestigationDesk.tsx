@@ -170,76 +170,101 @@ export const InvestigationDesk: React.FC = () => {
     handleUpdateEvidence(updatedList);
   };
 
-  // Calculate reporting checklist progress
+  // Use Person 2's dynamic checklist if available, otherwise calculate locally
   const checklistItems: Array<{
     id: string;
     label: string;
+    description: string;
     status: "complete" | "incomplete" | "warning";
     category: string;
-  }> = [
+  }> = incident.checklist?.items?.length
+    ? incident.checklist.items.map((item) => ({
+        id: item.id || item.key || item.field || item.label,
+        label: item.label,
+        description: item.description || "",
+        status:
+          item.status === "pass" || item.passed
+            ? "complete" as const
+            : item.status === "warning"
+              ? "warning" as const
+              : "incomplete" as const,
+        category: "General Reporting Criteria",
+      }))
+    : [
     {
       id: "case-info",
       label: "Case number documented",
+      description: `Case ID: ${incident.meta.caseId}`,
       status: incident.meta.caseId ? "complete" : "incomplete",
       category: "Incident Details",
     },
     {
       id: "fraud-type",
       label: "Fraud type identified",
+      description: `Type: ${incident.summary.fraudType}`,
       status: incident.summary.fraudType && incident.summary.fraudType !== "other" ? "complete" : "incomplete",
       category: "Incident Details",
     },
     {
       id: "loss-amount",
       label: "Estimated loss recorded",
+      description: `₹${incident.summary.estimatedLoss.toLocaleString()}`,
       status: incident.summary.estimatedLoss > 0 ? "complete" : "incomplete",
       category: "Incident Details",
     },
     {
       id: "timeline",
       label: "Chronological timeline built",
+      description: `${incident.timeline.length} event(s) reconstructed`,
       status: incident.timeline.length > 0 ? "complete" : "incomplete",
       category: "Analysis",
     },
     {
       id: "evidence-collected",
       label: "Evidence sources documented",
+      description: `${incident.evidence.length} evidence item(s) ingested`,
       status: incident.evidence.length > 0 ? "complete" : "incomplete",
       category: "Analysis",
     },
     {
       id: "gaps-identified",
       label: "Missing information identified",
+      description: `${incident.gaps.length} investigatory gap(s) documented`,
       status: "complete",
       category: "Analysis",
     },
     {
       id: "conflicts-identified",
       label: "Contradictions identified",
+      description: `${incident.conflicts.length} discrepanc(ies) found`,
       status: "complete",
       category: "Analysis",
     },
     {
       id: "redaction-applied",
       label: "Sensitive data redacted",
+      description: "PII auto-masked in shareable outputs",
       status: "complete",
       category: "Privacy",
     },
     {
       id: "modules-fired",
       label: "Security modules executed",
+      description: `${incident.moduleHits.filter((m) => m.status === "hit").length} of ${incident.moduleHits.length} modules triggered`,
       status: incident.moduleHits.some((m) => m.status === "hit") ? "complete" : "warning",
       category: "Security Analysis",
     },
     {
       id: "report-ready",
       label: "Report ready for export",
+      description: "11-section incident report generated",
       status: "complete",
       category: "Reporting",
     },
     {
       id: "export-verified",
       label: "Exports verified",
+      description: "Manual verification required before submission",
       status: "warning",
       category: "Reporting",
     },
@@ -418,9 +443,21 @@ export const InvestigationDesk: React.FC = () => {
                 </h3>
                 <div className="space-y-6">
                   <MissingPanel gaps={incident.gaps} />
-                  <DuplicatesPanel duplicates={demoDuplicates} />
+                  <DuplicatesPanel duplicates={incident.duplicates?.length ? incident.duplicates.map(d => ({
+                    id: d.id,
+                    sources: [
+                      { file: d.recordA.sourceEvidenceId, location: d.recordA.transactionReference || `Row ${d.recordA.sourceRowIndex || 1}` },
+                      { file: d.recordB.sourceEvidenceId, location: d.recordB.transactionReference || `Row ${d.recordB.sourceRowIndex || 1}` },
+                    ]
+                  })) : demoDuplicates} />
                   <ConflictPanel conflicts={incident.conflicts} />
-                  <AssumptionsPanel assumptions={demoAssumptions} />
+                  <AssumptionsPanel assumptions={incident.assumptions?.length ? incident.assumptions.map(a => ({
+                    id: a.id,
+                    description: a.claim,
+                    reason: a.rationale,
+                    status: a.verified ? "verified" as const : a.level === "ASSUMPTION" ? "unverified" as const : "disputed" as const,
+                    evidenceIds: a.sourceEvidenceIds,
+                  })) : demoAssumptions} />
                   <DataNormalizationUI datasets={demoDatasets} />
                 </div>
               </div>
