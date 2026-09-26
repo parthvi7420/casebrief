@@ -6,6 +6,16 @@ Built with a **zero-hallucination, deterministic architecture**, CaseBrief elimi
 
 ---
 
+## Minimal Investigation Workspace (v2.0 Redesign)
+
+CaseBrief v2.0 features a minimal, high-contrast, developer-grade investigation workspace inspired by modern engineering tools:
+- **240px Navigation Sidebar**: Clean stage switcher with real-time entity/evidence counters, active case dossier badge, and zero-egress air-gap status.
+- **Stage 0 Executive Overview Dashboard**: 5 top-level KPI metrics (Loss, Artifacts, Entities, Contradictions, Threat Modules), Case Profile & Attack Vector Anatomy, 6-Module Threat Radar, and a 7-stage workflow launchpad.
+- **Unified 7-Stage Process Stepper**: Horizontal navigation with live badge counts and Overview quick toggle.
+- **Professional Forensic Palette**: Background `#F7F9FC`, Surface `#FFFFFF`, High-Contrast Navy `#172033`, Slate `#475569`, Border `#E2E8F0`, Primary `#2563EB`, Success `#10B981`, Warning `#F59E0B`, Critical `#EF4444`.
+
+---
+
 ## Key Capabilities & Forensic Pipeline
 
 CaseBrief implements an end-to-end 7-stage investigative workflow designed for cybercrime units, fraud analysts, incident response teams, and compliance officers:
@@ -19,6 +29,11 @@ CaseBrief implements an end-to-end 7-stage investigative workflow designed for c
        ▼                                                                ▼
 [Gap & Checklist Engine] ──► [Contradiction Analysis] ──► [Privacy Redaction] ──► [Incident Report & Export]
 ```
+
+### 0. Executive Overview Dashboard (Stage 0)
+- **Top Metric Cards**: Confirmed Financial Loss, Evidence Artifacts, Extracted Forensic Entities, Contradictions, and Active Threat Detections.
+- **Case Profile & Threat Actor Anatomy**: Suspect contacts, beneficiary VPAs, phishing domain protocols, and execution time windows.
+- **6-Module Threat Radar**: Real-time evaluation of all 6 security heuristics with reason badges and executive brief quick-generator.
 
 ### 1. Cryptographic Evidence Intake & Chain of Custody (Stage 1)
 - **Multi-Modal Ingestion**: Ingests WhatsApp exports (`.txt`), bank transaction ledgers (`.csv`), network logs, phishing URLs, and raw evidentiary text.
@@ -106,7 +121,7 @@ Maintains an exhaustive, byte-level registry connecting every extracted entity, 
 ### Frontend Application
 - **Framework**: React 18 with TypeScript 5.7
 - **Bundler & Tooling**: Vite 6, PostCSS, Autoprefixer
-- **Styling & Cyber Theme**: Tailwind CSS 3.4 with custom Cyber Forensics design tokens (`#080D18` dark slate background, `#0D1422` surface, `#4F8CFF` primary accent, `#26D9A0` success green, `#F5B942` warning amber, `#F0526F` critical crimson)
+- **Styling & Design Tokens**: Tailwind CSS 3.4 with minimal, high-contrast palette tokens (`#F7F9FC` background, `#FFFFFF` surface, `#172033` navy text, `#2563EB` primary accent, `#10B981` emerald, `#F59E0B` amber, `#EF4444` rose)
 - **Icons**: Lucide React
 - **Local Persistence**: IndexedDB via `idb` library (supports fully offline, air-gapped operation)
 - **Utilities**: `clsx`, `tailwind-merge`
@@ -170,6 +185,8 @@ casebrief/
 │   ├── services/
 │   │   └── apiClient.ts               # REST API client with offline fallback
 │   ├── components/                    # Investigation Desk UI Panels & Rails
+│   │   ├── Sidebar.tsx                # 240px Navigation sidebar & case dossier badge
+│   │   ├── OverviewDashboard.tsx      # Stage 0: Executive overview KPI dashboard
 │   │   ├── ProcessStepper.tsx         # 7-Stage workflow navigation
 │   │   ├── ModuleRail.tsx             # 6-Module status rail with HIT/IDLE badges
 │   │   ├── EvidencePanel.tsx          # Stage 1: Drag-and-drop intake & SHA-256
@@ -180,6 +197,7 @@ casebrief/
 │   │   ├── ConflictPanel.tsx          # Stage 5: Cross-evidence contradictions
 │   │   ├── RedactionPanel.tsx         # Stage 6: Privacy masking sandbox
 │   │   ├── EnhancedIncidentReport.tsx # Stage 7: Comprehensive incident dossier
+│   │   ├── IncidentReport.tsx         # Executive print-ready brief
 │   │   ├── DuplicatesPanel.tsx        # Duplicate evidence management
 │   │   ├── AssumptionsPanel.tsx       # Forensic truth classification UI
 │   │   ├── SourceTraceability.tsx     # Evidence provenance inspector
@@ -248,33 +266,6 @@ casebrief/
 
 ---
 
-### Backend Service (Optional Enterprise Mode)
-
-CaseBrief operates completely standalone in the browser using IndexedDB. If multi-user synchronization and PostgreSQL database persistence are required:
-
-1. **Navigate to the backend directory**:
-   ```bash
-   cd backend
-   npm install
-   ```
-
-2. **Configure environment variables**:
-   Create a `.env` file in the `backend/` directory:
-   ```env
-   PORT=3000
-   DATABASE_URL="postgresql://user:password@localhost:5432/casebrief?schema=public"
-   CORS_ORIGIN="http://localhost:5173"
-   ```
-
-3. **Initialize Prisma & start server**:
-   ```bash
-   npm run prisma:generate
-   npm run prisma:push
-   npm run dev
-   ```
-
----
-
 ## REST API Specification
 
 | Method | Endpoint | Description |
@@ -301,6 +292,7 @@ To demonstrate the platform's capabilities, CaseBrief includes a pre-packaged be
    - `suspicious_url.txt`: Insecure HTTP link `http://pay-secure-example.test/sbi-kyc-update` received at `10:35 AM`.
    - `transactions.csv`: Bank transaction ledger reflecting a `₹4,999` debit at `10:45 AM` to `fraudster@oksbi` with missing UTR number, followed by a second `₹5,000` attempt at `11:00 AM`.
 2. **Reconstruction Output**:
+   - **Stage 0 Overview**: Live metrics displaying ₹4,999 confirmed financial loss, 3 artifacts, 6 module hits, ₹1 contradiction diff.
    - **Chronological Narrative**: 4-event sequence assembled from `10:34 AM` to `11:00 AM`.
    - **Module Hits**: All 6 Security Modules flag active threats (Message Analyzer, URL Reputation, Threat Intel, Network Monitor, Transaction Auditor, Fraud Attempt Log).
    - **Gap Identification**: Flags missing 12-digit UTR on Transaction #01 as a primary investigative roadblock.

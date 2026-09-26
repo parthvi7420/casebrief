@@ -10,6 +10,8 @@ import {
   createCaseOnBackend,
   uploadEvidenceToBackend,
 } from "../services/apiClient";
+import { Sidebar } from "../components/Sidebar";
+import { OverviewDashboard } from "../components/OverviewDashboard";
 import { ProcessStepper } from "../components/ProcessStepper";
 import { ModuleRail } from "../components/ModuleRail";
 import { EvidencePanel } from "../components/EvidencePanel";
@@ -21,7 +23,6 @@ import { DuplicatesPanel } from "../components/DuplicatesPanel";
 import { ConflictPanel } from "../components/ConflictPanel";
 import { AssumptionsPanel } from "../components/AssumptionsPanel";
 import { RedactionPanel } from "../components/RedactionPanel";
-import { IncidentReport } from "../components/IncidentReport";
 import { EnhancedIncidentReport } from "../components/EnhancedIncidentReport";
 import { ReportingChecklist } from "../components/ReportingChecklist";
 import {
@@ -36,6 +37,10 @@ import {
   Share2,
   Server,
   Activity,
+  Menu,
+  X,
+  Layers,
+  FileText,
 } from "lucide-react";
 import {
   exportShareableRedactedJSON,
@@ -44,11 +49,13 @@ import {
 } from "../utils/export";
 
 export const InvestigationDesk: React.FC = () => {
-  const [activeStage, setActiveStage] = useState<number>(1);
+  // Default to Stage 0 (Overview Dashboard)
+  const [activeStage, setActiveStage] = useState<number>(0);
   const [incident, setIncident] = useState<Incident>(() => createDemoIncident());
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
   const [backendChecked, setBackendChecked] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
 
   // Poll backend health on mount and periodically
   useEffect(() => {
@@ -72,7 +79,6 @@ export const InvestigationDesk: React.FC = () => {
   useEffect(() => {
     async function initCase() {
       try {
-        // Try loading from backend demo first if online, else IndexedDB
         const remoteDemo = await fetchPhishingDemo();
         if (remoteDemo) {
           setIncident(remoteDemo);
@@ -109,7 +115,6 @@ export const InvestigationDesk: React.FC = () => {
           return;
         }
       }
-      // Local fallback
       const demo = createDemoIncident();
       setIncident(demo);
     } catch (err) {
@@ -129,7 +134,7 @@ export const InvestigationDesk: React.FC = () => {
         const newCase = await createCaseOnBackend("New Digital Fraud Investigation");
         if (newCase) {
           setIncident(newCase);
-          setActiveStage(1);
+          setActiveStage(0);
           setIsProcessing(false);
           return;
         }
@@ -213,7 +218,7 @@ export const InvestigationDesk: React.FC = () => {
     };
 
     setIncident(blankIncident);
-    setActiveStage(1);
+    setActiveStage(0);
     setIsProcessing(false);
   };
 
@@ -224,7 +229,6 @@ export const InvestigationDesk: React.FC = () => {
       const updatedIncident = await processEvidence(newEvidenceList);
       setIncident(updatedIncident);
 
-      // Async sync with backend if online
       if (backendOnline && incident.meta.caseId) {
         uploadEvidenceToBackend(
           incident.meta.caseId,
@@ -247,197 +251,280 @@ export const InvestigationDesk: React.FC = () => {
     handleUpdateEvidence(updatedList);
   };
 
+  const totalEntities =
+    (incident.extractedEntities?.urls?.length || 0) +
+    (incident.extractedEntities?.amounts?.length || 0) +
+    (incident.extractedEntities?.upiIds?.length || 0) +
+    (incident.extractedEntities?.phones?.length || 0) +
+    (incident.extractedEntities?.utrs?.length || 0) +
+    (incident.extractedEntities?.accounts?.length || 0) +
+    (incident.extractedEntities?.keywords?.length || 0);
+
+  const stepBadges: Record<number, string> = {
+    1: `${incident.evidence.length}`,
+    2: `${totalEntities}`,
+    3: `${incident.timeline.length}`,
+    4: `${incident.gaps.length}`,
+    5: `${incident.conflicts.length}`,
+    6: "Masked",
+    7: "Dossier",
+  };
+
+  const stageTitles: Record<number, { title: string; desc: string }> = {
+    0: {
+      title: "Executive Investigation Overview",
+      desc: "Forensic dashboard summarizing case facts, suspect profiles, and live detection heuristics.",
+    },
+    1: {
+      title: "Stage 01: Evidence Ingestion & Custody",
+      desc: "Raw multi-modal evidence upload with automatic SHA-256 cryptographic checksum calculation.",
+    },
+    2: {
+      title: "Stage 02: Entity Extraction & Normalization",
+      desc: "Deterministic regex-based parsing of URLs, UPI IDs, Phones, UTRs, and CSV column schema mapping.",
+    },
+    3: {
+      title: "Stage 03: Chronological Attack Timeline",
+      desc: "Reconstructed sequential incident milestones with cross-evidence verification tags.",
+    },
+    4: {
+      title: "Stage 04: Investigatory Gaps, Duplicates & Assumptions",
+      desc: "Missing UTR audit, non-destructive duplicate identification, and evidentiary certainty classification.",
+    },
+    5: {
+      title: "Stage 05: Contradiction & Discrepancy Matrix",
+      desc: "Automated cross-source conflict detection comparing chat claims against formal financial ledgers.",
+    },
+    6: {
+      title: "Stage 06: Privacy & PII Redaction Sandbox",
+      desc: "Client-side privacy masking for phone numbers, accounts, and VPA identifiers with safe unmasking.",
+    },
+    7: {
+      title: "Stage 07: Incident Report & Export Dossier",
+      desc: "NCRP/CERT-In compliant executive summary brief, reporting checklist, and JSON exports.",
+    },
+  };
+
   return (
-    <div className="min-h-screen bg-cb-bg text-cb-text flex flex-col selection:bg-cb-primary selection:text-white">
-      {/* Top Global Command Bar */}
-      <header className="bg-cb-surface/90 backdrop-blur border-b border-cb-border sticky top-0 z-50 no-print">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Brand & Case Meta */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-cb-md bg-cb-primary/10 border border-cb-primary/30 flex items-center justify-center text-cb-primary shadow-inner">
-              <ShieldCheck className="w-6 h-6" />
+    <div className="min-h-screen bg-cb-bg text-cb-text flex selection:bg-cb-primary selection:text-white">
+      {/* 220px–240px Navigation Sidebar */}
+      <Sidebar
+        currentStage={activeStage}
+        onSelectStage={setActiveStage}
+        incident={incident}
+        backendOnline={backendOnline}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
+
+      {/* Main Content Pane */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+        {/* Top Global Command Header */}
+        <header className="bg-cb-surface/95 backdrop-blur-md border-b border-cb-border sticky top-0 z-40 no-print">
+          <div className="px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            {/* Stage title & Mobile Toggle */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsMobileSidebarOpen(true)}
+                className="lg:hidden cb-icon-btn"
+                title="Toggle Sidebar"
+              >
+                <Menu className="w-5 h-5 text-cb-text" />
+              </button>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-sm sm:text-base font-bold text-cb-text">
+                    {stageTitles[activeStage]?.title || "CaseBrief Workspace"}
+                  </h1>
+                  {activeStage === 0 ? (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cb-primary/10 text-cb-primary border border-cb-primary/30 font-bold">
+                      DASHBOARD
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cb-bg text-cb-muted border border-cb-border font-semibold">
+                      STAGE {activeStage}/7
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-cb-muted mt-0.5 hidden sm:block">
+                  {stageTitles[activeStage]?.desc}
+                </p>
+              </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-black tracking-tight text-cb-text">
-                  CASEBRIEF
-                </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cb-primary/10 text-cb-primary border border-cb-primary/30 font-bold">
-                  v2.0 PRO
-                </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cb-success/10 text-cb-success border border-cb-success/30 flex items-center gap-1 font-semibold">
-                  <Lock className="w-2.5 h-2.5" />
-                  100% OFFLINE / ZERO CLOUD
-                </span>
-                {backendChecked && (
-                  <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border flex items-center gap-1 font-semibold transition-all ${
-                      backendOnline
-                        ? "bg-cb-primary/10 text-cb-primary border-cb-primary/30"
-                        : "bg-cb-bg text-cb-muted border-cb-border"
-                    }`}
-                    title={
-                      backendOnline
-                        ? "Connected to Express Backend on Port 3000"
-                        : "Running on Client-Side Engine (Offline Mode)"
-                    }
-                  >
-                    <Server className="w-2.5 h-2.5" />
-                    {backendOnline ? "REST API :3000" : "LOCAL ENGINE"}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-cb-muted flex items-center gap-2 mt-0.5">
-                <span>Case Ref: <strong className="text-cb-text font-mono">{incident.meta.caseId}</strong></span>
-                <span>•</span>
-                <span className="text-cb-muted font-medium truncate max-w-xs">{incident.meta.title}</span>
-              </div>
+
+            {/* Quick Actions CTAs */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={handleLoadDemo}
+                disabled={isProcessing}
+                className="cb-btn-primary flex items-center gap-1.5 text-xs cursor-pointer shadow-xs"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Load Benchmark Demo</span>
+              </button>
+
+              <button
+                onClick={handleReset}
+                className="cb-btn-ghost flex items-center gap-1.5 text-xs cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Reset</span>
+              </button>
+
+              <div className="h-4 w-px bg-cb-border hidden sm:block" />
+
+              <button
+                onClick={() => exportShareableRedactedJSON(incident)}
+                title="Export Redacted JSON for Safe Sharing"
+                className="cb-icon-btn text-cb-success"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={() => exportFullForensicJSON(incident)}
+                title="Download Full Forensic JSON File"
+                className="cb-icon-btn text-cb-text-secondary"
+              >
+                <Download className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={printIncidentReport}
+                title="Print Official Incident Report"
+                className="cb-icon-btn text-cb-primary"
+              >
+                <Printer className="w-4 h-4" />
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={handleLoadDemo}
-              disabled={isProcessing}
-              className="cb-btn-primary flex items-center gap-1.5 text-xs cursor-pointer shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Load Phishing Benchmark Demo
-            </button>
-
-            <button
-              onClick={handleReset}
-              className="cb-btn-ghost flex items-center gap-1.5 text-xs cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              Reset Desk
-            </button>
-
-            <div className="h-4 w-px bg-cb-border hidden sm:block" />
-
-            <button
-              onClick={() => exportShareableRedactedJSON(incident)}
-              title="Export Redacted JSON for Safe Sharing"
-              className="cb-icon-btn text-cb-success"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => exportFullForensicJSON(incident)}
-              title="Download Full Forensic JSON File"
-              className="cb-icon-btn text-cb-text-secondary"
-            >
-              <Download className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={printIncidentReport}
-              title="Print Official Incident Report"
-              className="cb-icon-btn text-cb-primary"
-            >
-              <Printer className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* 7-Stage Process Stepper Navigation */}
-        <section className="no-print">
-          <ProcessStepper
-            currentStep={activeStage}
-            onStepClick={setActiveStage}
-          />
-        </section>
-
-        {/* 6-Module Live Cybersecurity Status Rail */}
-        <section className="no-print">
-          <ModuleRail moduleHits={incident.moduleHits} />
-        </section>
-
-        {/* Stage Investigation Panel Switcher */}
-        <section className="min-h-[500px] space-y-6">
-          {activeStage === 1 && (
-            <EvidencePanel
-              evidence={incident.evidence}
-              onAddEvidence={handleAddSingleEvidence}
+        {/* Workspace Body */}
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-6 max-w-7xl w-full mx-auto">
+          {/* Top Workflow Stepper (always accessible) */}
+          <section className="no-print">
+            <ProcessStepper
+              currentStep={activeStage}
+              onStepClick={setActiveStage}
+              stepBadges={stepBadges}
             />
-          )}
+          </section>
 
-          {activeStage === 2 && (
-            <div className="space-y-6">
-              <ExtractionPanel
-                entities={incident.extractedEntities}
+          {/* 6-Module Live Threat Rail (shown for stages) */}
+          <section className="no-print">
+            <ModuleRail moduleHits={incident.moduleHits} />
+          </section>
+
+          {/* Active Stage Pane */}
+          <section className="min-h-[500px] space-y-6">
+            {/* Stage 0: Overview Dashboard */}
+            {activeStage === 0 && (
+              <OverviewDashboard
+                incident={incident}
+                onNavigateStage={setActiveStage}
               />
-              <DataNormalizationUI
-                datasets={extractDatasetMappings(incident.evidence)}
+            )}
+
+            {/* Stage 1: Evidence Intake */}
+            {activeStage === 1 && (
+              <EvidencePanel
+                evidence={incident.evidence}
+                onAddEvidence={handleAddSingleEvidence}
               />
-            </div>
-          )}
+            )}
 
-          {activeStage === 3 && (
-            <PhishingTimeline timeline={incident.timeline} />
-          )}
+            {/* Stage 2: Entity Extraction & Data Normalization */}
+            {activeStage === 2 && (
+              <div className="space-y-6">
+                <ExtractionPanel entities={incident.extractedEntities} />
+                <DataNormalizationUI
+                  datasets={extractDatasetMappings(incident.evidence)}
+                />
+              </div>
+            )}
 
-          {activeStage === 4 && (
-            <div className="space-y-6">
-              <MissingPanel gaps={incident.gaps} />
-              <DuplicatesPanel duplicates={incident.duplicates || []} />
-              <AssumptionsPanel assumptions={incident.assumptions || []} />
-            </div>
-          )}
+            {/* Stage 3: Chronological Timeline */}
+            {activeStage === 3 && (
+              <PhishingTimeline timeline={incident.timeline} />
+            )}
 
-          {activeStage === 5 && (
-            <ConflictPanel conflicts={incident.conflicts} />
-          )}
+            {/* Stage 4: Gaps, Duplicates, Assumptions */}
+            {activeStage === 4 && (
+              <div className="space-y-6">
+                <MissingPanel gaps={incident.gaps} />
+                <DuplicatesPanel duplicates={incident.duplicates || []} />
+                <AssumptionsPanel assumptions={incident.assumptions || []} />
+              </div>
+            )}
 
-          {activeStage === 6 && (
-            <RedactionPanel incident={incident} />
-          )}
+            {/* Stage 5: Contradictions */}
+            {activeStage === 5 && (
+              <ConflictPanel conflicts={incident.conflicts} />
+            )}
 
-          {activeStage === 7 && (
-            <div className="space-y-6">
-              {incident.checklist && (
-                <ReportingChecklist items={incident.checklist.items} />
+            {/* Stage 6: Privacy Sandbox */}
+            {activeStage === 6 && (
+              <RedactionPanel incident={incident} />
+            )}
+
+            {/* Stage 7: Reporting Checklist & Incident Report */}
+            {activeStage === 7 && (
+              <div className="space-y-6">
+                {incident.checklist && (
+                  <ReportingChecklist items={incident.checklist.items} />
+                )}
+                <EnhancedIncidentReport incident={incident} />
+              </div>
+            )}
+          </section>
+
+          {/* Bottom Stage Navigation Controls */}
+          <section className="cb-surface p-4 flex items-center justify-between no-print shadow-xs rounded-cb-md">
+            {activeStage === 0 ? (
+              <button
+                onClick={() => setActiveStage(1)}
+                className="cb-btn-ghost flex items-center gap-2 text-xs cursor-pointer"
+              >
+                <span>Enter Guided Investigation</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={() => setActiveStage((prev) => Math.max(0, prev - 1))}
+                className="cb-btn-ghost flex items-center gap-2 text-xs cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>{activeStage === 1 ? "Overview Dashboard" : "Previous Stage"}</span>
+              </button>
+            )}
+
+            <div className="text-xs font-mono text-cb-muted">
+              {activeStage === 0 ? (
+                <span>Executive Summary View</span>
+              ) : (
+                <span>
+                  Investigation Stage <strong className="text-cb-text">{activeStage}</strong> of <strong>7</strong>
+                </span>
               )}
-              <EnhancedIncidentReport incident={incident} />
             </div>
-          )}
-        </section>
 
-        {/* Bottom Step Navigation Control Bar */}
-        <section className="cb-surface p-4 flex items-center justify-between no-print shadow-sm">
-          <button
-            onClick={() => setActiveStage((prev) => Math.max(1, prev - 1))}
-            disabled={activeStage === 1}
-            className="cb-btn-ghost flex items-center gap-2 text-xs cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Previous Stage
-          </button>
+            <button
+              onClick={() => setActiveStage((prev) => (prev === 7 ? 0 : prev + 1))}
+              className="cb-btn-primary flex items-center gap-2 text-xs cursor-pointer"
+            >
+              <span>{activeStage === 7 ? "Return to Overview" : activeStage === 0 ? "Begin Stage 1" : "Next Stage"}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </section>
+        </main>
 
-          <div className="text-xs font-mono text-cb-muted">
-            Investigation Stage <strong className="text-cb-text">{activeStage}</strong> of <strong>7</strong>
-          </div>
-
-          <button
-            onClick={() => setActiveStage((prev) => Math.min(7, prev + 1))}
-            disabled={activeStage === 7}
-            className="cb-btn-primary flex items-center gap-2 text-xs cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
-          >
-            Next Stage
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </section>
-      </main>
-
-      {/* Footer Disclaimer */}
-      <footer className="border-t border-cb-border bg-cb-bg py-4 text-center text-xs text-cb-muted no-print">
-        CaseBrief Forensic Reconstruction Desk • Zero External API Calls • Deterministic Evidence Processing Engine • ISO/IEC 27037 Standard Compliant
-      </footer>
+        {/* Footer */}
+        <footer className="border-t border-cb-border bg-cb-surface py-3.5 px-6 text-center text-xs text-cb-muted no-print">
+          CaseBrief Forensic Reconstruction Desk • Zero External API Calls • Deterministic Evidence Processing Engine • ISO/IEC 27037 Compliant
+        </footer>
+      </div>
     </div>
   );
 };
