@@ -1,0 +1,2 @@
+[26/09/26, 10:34:00 AM] +919876543210: URGENT: Your bank account requires immediate KYC verification to avoid permanent account block. Click here immediately to verify: http://pay-secure-example.test/verify
+[26/09/26, 11:00:00 AM] +919876543210: We noticed an issue with your previous submission. Please send ₹5,000 to verify@oksbi immediately to complete your verification and unblock your account.

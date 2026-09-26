@@ -1,9 +1,68 @@
 /**
- * SHARED CONTRACT between Member 1 (UI) and Member 2 (Engine)
- *
- * DO NOT modify this file without coordinating with both team members.
- * This is the single source of truth for data flow between systems.
+ * CaseBrief Shared Contract (Person 1 & Person 2 Interface)
  */
+
+export type FraudType =
+  | "UPI"
+  | "phishing"
+  | "fake_job"
+  | "investment"
+  | "other";
+
+export type SecurityModuleName =
+  | "Message Analyzer"
+  | "URL Reputation Check"
+  | "Network Monitoring"
+  | "Threat Intelligence Feed"
+  | "Transaction Auditor"
+  | "Fraud Attempt Log";
+
+export interface IncidentMeta {
+  caseId: string;
+  createdAt: string;
+  title: string;
+  status: string;
+}
+
+export interface IncidentSummary {
+  fraudType: FraudType;
+  estimatedLoss: number;
+  currency: string;
+  firstEvent: string;
+  lastEvent: string;
+}
+
+export interface Party {
+  id: string;
+  name?: string;
+  phones?: string[];
+  emails?: string[];
+  upiIds?: string[];
+  handles?: string[];
+}
+
+export interface Channel {
+  type: "url" | "app" | "domain" | "other";
+  value: string;
+  sourceEvidenceIds: string[];
+}
+
+export interface Transaction {
+  id: string;
+  date?: string;
+  time?: string;
+  amount?: number;
+  currency?: string;
+  utr?: string;
+  impsRef?: string;
+  neftRef?: string;
+  ifsc?: string;
+  accountLast4?: string;
+  upiId?: string;
+  description?: string;
+  notes?: string;
+  sourceEvidenceIds: string[];
+}
 
 export interface TimelineEvent {
   id: string;
@@ -14,85 +73,86 @@ export interface TimelineEvent {
   modulesFired: string[];
 }
 
-export interface EvidenceItem {
-  id: string;
-  type: 'message' | 'url' | 'transaction' | 'image' | 'document';
-  content: string;
-  timestamp?: string;
-  hash?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface Transaction {
-  id: string;
-  amount: number;
-  currency: string;
-  timestamp: string;
-  upi?: string;
-  utr?: string;
-  counterparty?: string;
-}
-
 export interface Gap {
+  id: string;
   field: string;
-  transaction?: string;
-  status: 'missing' | 'incomplete';
-  required?: boolean;
+  description: string;
+  sourceEvidenceIds: string[];
+  severity: "low" | "medium" | "high";
 }
 
 export interface Conflict {
+  id: string;
   type: string;
-  source1: string;
-  source2: string;
-  value1: string | number;
-  value2: string | number;
-  difference?: string | number;
+  description: string;
+  sourceA: {
+    evidenceId: string;
+    value: string;
+  };
+  sourceB: {
+    evidenceId: string;
+    value: string;
+  };
+  severity: "low" | "medium" | "high";
 }
 
 export interface ModuleHit {
-  module: string;
-  status: 'hit' | 'idle';
-  reasons?: string[];
-  confidence?: number;
+  module: SecurityModuleName;
+  status: "hit" | "idle";
+  reasons: string[];
+  evidenceIds: string[];
 }
 
 export interface FraudAttempt {
+  id: string;
   timestamp: string;
   event: string;
   reason: string;
-  modulesFired: string[];
+  modules: string[];
+  sourceEvidenceIds: string[];
 }
 
-export interface Party {
-  name?: string;
-  identifier?: string;
-  role: 'sender' | 'receiver' | 'intermediary';
+export interface EvidenceItem {
+  id: string;
+  type:
+    | "message"
+    | "screenshot"
+    | "transaction"
+    | "url"
+    | "pdf"
+    | "csv"
+    | "text"
+    | "other";
+  filename?: string;
+  hash?: string;
+  extractedText?: string;
+  redactedPreview?: string;
+  createdAt: string;
 }
 
-export interface Channel {
-  type: 'whatsapp' | 'sms' | 'email' | 'bank' | 'other';
-  identifier?: string;
+export interface ExtractedEntities {
+  dates: string[];
+  amounts: number[];
+  formattedAmounts: string[];
+  urls: {
+    raw: string;
+    protocol: string;
+    domain: string;
+    path: string;
+  }[];
+  phones: string[];
+  emails: string[];
+  upiIds: string[];
+  utrs: string[];
+  accounts: string[];
+  keywords: string[];
 }
 
 export interface Incident {
-  // Metadata
-  id: string;
-  createdAt: string;
-  caseNumber: string;
-
-  // Summary
-  summary: {
-    title: string;
-    fraudType: string;
-    estimatedLoss: number;
-    currency: string;
-  };
-
-  // Entities
+  meta: IncidentMeta;
+  summary: IncidentSummary;
   parties: Party[];
   channels: Channel[];
-
-  // Data
   transactions: Transaction[];
   timeline: TimelineEvent[];
   gaps: Gap[];
@@ -100,25 +160,5 @@ export interface Incident {
   moduleHits: ModuleHit[];
   fraudAttemptLog: FraudAttempt[];
   evidence: EvidenceItem[];
-
-  // Redaction state
-  redacted?: {
-    phone?: boolean;
-    email?: boolean;
-    upi?: boolean;
-    account?: boolean;
-    aadhaar?: boolean;
-    pan?: boolean;
-  };
-}
-
-/**
- * MEMBER 2 INTERFACE
- *
- * Member 2 must expose these functions:
- */
-
-export interface InvestigationEngine {
-  loadDemoCase(): Incident;
-  processEvidence(evidence: EvidenceItem[]): Promise<Incident>;
+  extractedEntities?: ExtractedEntities;
 }

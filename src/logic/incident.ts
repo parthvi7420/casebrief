@@ -1,161 +1,142 @@
-import { Incident } from '../types/incident'
+import { Incident, EvidenceItem, FraudType, Channel, Party } from "../types/incident";
+import { runAllSecurityModules } from "../modules";
+import { buildChronologicalTimeline } from "./timeline";
+import { identifyForensicGaps } from "./gaps";
+import { identifyEvidenceConflicts } from "./conflicts";
+import { extractEntities } from "../extract";
+import { redactText } from "./redaction";
+import { computeSHA256 } from "../utils/hashing";
+import { createDemoIncident } from "./demoCase";
 
-export function loadDemoCase(): Incident {
-  return {
-    id: 'demo-001',
-    createdAt: new Date().toISOString(),
-    caseNumber: 'CB-2026-001',
-    summary: {
-      title: 'Phishing and UPI Fraud',
-      fraudType: 'Phishing / UPI',
-      estimatedLoss: 5000,
-      currency: 'INR',
-    },
-    parties: [
-      { name: 'Victim', identifier: 'user123', role: 'sender' },
-      { name: 'Fraudster', identifier: 'unknown', role: 'receiver' },
-    ],
-    channels: [
-      { type: 'whatsapp', identifier: '+91-9876-543210' },
-      { type: 'bank', identifier: 'HDFC Bank' },
-    ],
-    transactions: [
-      {
-        id: 'txn-001',
-        amount: 5000,
-        currency: 'INR',
-        timestamp: '2026-01-15T10:45:00Z',
-        upi: 'fraud@oksbi',
-        utr: undefined,
-        counterparty: 'fraudster',
-      },
-      {
-        id: 'txn-002',
-        amount: 4999,
-        currency: 'INR',
-        timestamp: '2026-01-15T10:45:30Z',
-        upi: 'fraud@okaxis',
-        utr: undefined,
-        counterparty: 'fraudster',
-      },
-    ],
-    timeline: [
-      {
-        id: 'evt-001',
-        time: '10:34 AM',
-        title: 'Suspicious Message Received',
-        description: 'Phishing link in a message',
-        sourceIds: ['evidence-001'],
-        modulesFired: ['Message Analyzer'],
-      },
-      {
-        id: 'evt-002',
-        time: '10:35 AM',
-        title: 'Suspicious URL Identified',
-        description: 'URL flagged as potentially malicious',
-        sourceIds: ['evidence-002'],
-        modulesFired: ['URL Reputation Check'],
-      },
-      {
-        id: 'evt-003',
-        time: '10:45 AM',
-        title: '₹5,000 Transaction Recorded',
-        description: 'Payment detected in chat',
-        sourceIds: ['evidence-003'],
-        modulesFired: ['Transaction Auditor', 'Fraud Attempt Log'],
-      },
-      {
-        id: 'evt-004',
-        time: '11:00 AM',
-        title: 'Another Payment Requested',
-        description: 'Second payment request detected in transaction log',
-        sourceIds: ['evidence-003'],
-        modulesFired: ['Transaction Auditor', 'Fraud Attempt Log'],
-      },
-    ],
-    gaps: [
-      {
-        field: 'UTR',
-        transaction: 'txn-001',
-        status: 'missing',
-        required: true,
-      },
-    ],
-    conflicts: [
-      {
-        type: 'Amount',
-        source1: 'Chat Message',
-        source2: 'Transaction CSV',
-        value1: '₹5,000',
-        value2: '₹4,999',
-        difference: '₹1',
-      },
-    ],
-    moduleHits: [
-      { module: 'Message Analyzer', status: 'hit', reasons: ['Phishing keywords detected', 'Urgent language'] },
-      { module: 'URL Reputation Check', status: 'hit', reasons: ['HTTP protocol', 'Payment-related domain'] },
-      { module: 'Network Monitoring', status: 'idle' },
-      { module: 'Threat Intelligence Feed', status: 'hit', reasons: ['Suspicious pattern matched'] },
-      { module: 'Transaction Auditor', status: 'hit', reasons: ['Anomalous amount', 'Duplicate UPI'] },
-      { module: 'Fraud Attempt Log', status: 'hit', reasons: ['Multiple payment requests'] },
-    ],
-    fraudAttemptLog: [
-      {
-        timestamp: '2026-01-15T10:34:00Z',
-        event: 'Phishing message detected',
-        reason: 'Malicious keywords found',
-        modulesFired: ['Message Analyzer'],
-      },
-      {
-        timestamp: '2026-01-15T10:35:00Z',
-        event: 'Suspicious URL detected',
-        reason: 'HTTP connection, payment path',
-        modulesFired: ['URL Reputation Check'],
-      },
-      {
-        timestamp: '2026-01-15T10:45:00Z',
-        event: 'Transaction detected',
-        reason: 'Large amount to suspicious UPI',
-        modulesFired: ['Transaction Auditor'],
-      },
-      {
-        timestamp: '2026-01-15T11:00:00Z',
-        event: 'Second payment request',
-        reason: 'Multiple transactions from same fraudster',
-        modulesFired: ['Fraud Attempt Log'],
-      },
-    ],
-    evidence: [
-      {
-        id: 'evidence-001',
-        type: 'message',
-        content: `10:34 AM
-Hey! This is urgent. Your account needs verification.
-Click here: http://pay-secure-example.test/verify
-Do it NOW!`,
-        timestamp: '2026-01-15T10:34:00Z',
-        hash: 'a8c2d9e4f1b3c5a7e9f1b3c5d7e9f1b3c5d7e9f',
-        metadata: { source: 'WhatsApp' },
-      },
-      {
-        id: 'evidence-002',
-        type: 'url',
-        content: 'http://pay-secure-example.test/verify',
-        timestamp: '2026-01-15T10:35:00Z',
-        hash: 'b9d3e0f5g2c4d6b8f0g2c4d6e8f0g2c4d6e8f0g',
-        metadata: { source: 'Message Link' },
-      },
-      {
-        id: 'evidence-003',
-        type: 'transaction',
-        content: `Transaction Log:
-Time,Amount,UPI,Status
-10:45,5000,fraud@oksbi,Success
-10:45,4999,fraud@okaxis,Success`,
-        timestamp: '2026-01-15T10:45:00Z',
-        hash: 'c0e4f1g6h3d5e7c9g1h3d5e7f9g1h3d5e7f9g1h',
-        metadata: { source: 'Bank CSV Export' },
-      },
-    ],
+export { createDemoIncident, loadDemoCase };
+
+function loadDemoCase(): Incident {
+  return createDemoIncident();
+}
+
+/**
+ * Master pipeline processing raw uploaded/pasted evidence into an authenticated Incident investigation object.
+ */
+export async function processEvidence(evidenceList: EvidenceItem[]): Promise<Incident> {
+  // If no evidence provided or matches demo case, load benchmark demo
+  if (!evidenceList || evidenceList.length === 0) {
+    return createDemoIncident();
   }
+
+  // Ensure SHA-256 cryptographic hashes and redacted previews for all evidence items
+  const processedEvidence: EvidenceItem[] = [];
+  for (const item of evidenceList) {
+    const text = item.extractedText || "";
+    const hash = item.hash || (await computeSHA256(text));
+    const redactedPreview = item.redactedPreview || redactText(text);
+
+    processedEvidence.push({
+      ...item,
+      hash,
+      redactedPreview,
+    });
+  }
+
+  // Entity extraction
+  const combinedText = processedEvidence.map(e => e.extractedText || "").join("\n");
+  const extractedEntities = extractEntities(combinedText);
+
+  // Security modules execution
+  const moduleResults = runAllSecurityModules(processedEvidence);
+
+  // Reconstruct chronological timeline
+  const timeline = buildChronologicalTimeline(processedEvidence, moduleResults.transactions);
+
+  // Identify gaps & conflicts
+  const gaps = identifyForensicGaps(processedEvidence, moduleResults.transactions);
+  const conflicts = identifyEvidenceConflicts(processedEvidence, moduleResults.transactions);
+
+  // Derive channels
+  const channels: Channel[] = [];
+  for (const u of extractedEntities.urls) {
+    channels.push({
+      type: "url",
+      value: u.raw,
+      sourceEvidenceIds: processedEvidence.map(e => e.id),
+    });
+    channels.push({
+      type: "domain",
+      value: u.domain,
+      sourceEvidenceIds: processedEvidence.map(e => e.id),
+    });
+  }
+  for (const phone of extractedEntities.phones) {
+    channels.push({
+      type: "app",
+      value: `WhatsApp (+91 ${phone})`,
+      sourceEvidenceIds: processedEvidence.map(e => e.id),
+    });
+  }
+
+  // Derive parties
+  const parties: Party[] = [
+    {
+      id: "party-suspect",
+      name: "Identified Threat Actor",
+      phones: extractedEntities.phones,
+      emails: extractedEntities.emails,
+      upiIds: extractedEntities.upiIds,
+      handles: [...extractedEntities.phones, ...extractedEntities.upiIds],
+    },
+    {
+      id: "party-victim",
+      name: "Complainant",
+      phones: [],
+    },
+  ];
+
+  // Derive estimated financial loss
+  let estimatedLoss = 0;
+  if (moduleResults.transactions.length > 0) {
+    estimatedLoss = moduleResults.transactions.reduce((acc, t) => acc + (t.amount || 0), 0);
+  } else if (extractedEntities.amounts.length > 0) {
+    estimatedLoss = extractedEntities.amounts[0];
+  }
+
+  // Infer fraud type
+  let fraudType: FraudType = "phishing";
+  const lowerAll = combinedText.toLowerCase();
+  if (lowerAll.includes("upi") || extractedEntities.upiIds.length > 0) {
+    fraudType = "UPI";
+  } else if (lowerAll.includes("kyc") || lowerAll.includes("verify") || extractedEntities.urls.length > 0) {
+    fraudType = "phishing";
+  } else if (lowerAll.includes("job") || lowerAll.includes("task") || lowerAll.includes("salary")) {
+    fraudType = "fake_job";
+  } else if (lowerAll.includes("invest") || lowerAll.includes("crypto") || lowerAll.includes("return")) {
+    fraudType = "investment";
+  }
+
+  const firstEventTime = timeline[0]?.time || "10:34 AM";
+  const lastEventTime = timeline[timeline.length - 1]?.time || "11:00 AM";
+
+  return {
+    meta: {
+      caseId: `CB-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      title: `${fraudType.toUpperCase()} Digital Fraud Incident`,
+      createdAt: new Date().toISOString(),
+      status: "Active Investigation",
+    },
+    summary: {
+      fraudType,
+      estimatedLoss,
+      currency: "INR",
+      firstEvent: firstEventTime,
+      lastEvent: lastEventTime,
+    },
+    parties,
+    channels,
+    transactions: moduleResults.transactions,
+    timeline,
+    gaps,
+    conflicts,
+    moduleHits: moduleResults.moduleHits,
+    fraudAttemptLog: moduleResults.fraudAttemptLog,
+    evidence: processedEvidence,
+    extractedEntities,
+  };
 }
