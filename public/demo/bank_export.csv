@@ -1,0 +1,4 @@
+transaction_id,posting_date,txn_time,debit,payee,sender_account,narration
+UTR998877665544,2026-09-26,10:45,4999,verify@oksbi,XXXX4521,UPI Transfer to KYC Helpdesk
+UTR998877665544,2026-09-26,10:45,4999,verify@oksbi,XXXX4521,Duplicate Gateway Entry
+UTR112233445566,2026-09-26,11:15,5000,fake-support@okaxis,XXXX4521,Second Extortion Attempt
