@@ -12,47 +12,48 @@ export interface DatasetMapping {
 }
 
 interface DataNormalizationUIProps {
-  datasets: DatasetMapping[];
+  datasets?: DatasetMapping[];
   onConfirm?: () => void;
 }
 
 export const DataNormalizationUI: React.FC<DataNormalizationUIProps> = ({
-  datasets,
+  datasets = [],
   onConfirm,
 }) => {
+  const safeDatasets = datasets || [];
   const [expandedDataset, setExpandedDataset] = useState<string | null>(
-    datasets[0]?.filename || null
+    safeDatasets[0]?.filename || null
   );
 
-  if (datasets.length === 0) {
+  if (safeDatasets.length === 0) {
     return (
-      <div className="cb-surface p-6 shadow-sm">
+      <div className="cb-surface p-6 shadow-sm border border-cb-border rounded-cb-md">
         <h3 className="text-sm font-bold text-cb-text mb-2 flex items-center gap-2">
           <Database className="w-5 h-5 text-cb-primary" />
-          Dataset Normalization Engine
+          Stage 2b: Dataset Normalization Engine
         </h3>
-        <p className="text-xs text-cb-muted">No structured datasets detected</p>
+        <p className="text-xs text-cb-muted">No structured CSV datasets detected in evidence intake.</p>
       </div>
     );
   }
 
   return (
-    <div className="cb-surface p-6 shadow-sm space-y-6">
+    <div className="cb-surface p-6 shadow-sm space-y-6 border border-cb-border rounded-cb-md">
       <div className="flex items-center justify-between pb-4 border-b border-cb-border">
         <div>
           <h3 className="text-sm font-bold text-cb-text flex items-center gap-2">
             <Database className="w-5 h-5 text-cb-primary" />
-            Dataset Normalization & Field Mapping
+            Stage 2b: Dataset Normalization & Field Mapping
           </h3>
           <p className="text-xs text-cb-muted mt-1">
-            Map raw CSV/bank statement columns to standardized forensic case fields.
+            Map raw CSV / bank statement columns to standardized forensic case fields.
           </p>
         </div>
-        <span className="cb-badge cb-badge-idle">{datasets.length} Datasets</span>
+        <span className="cb-badge cb-badge-idle">{safeDatasets.length} Datasets</span>
       </div>
 
       <div className="space-y-3">
-        {datasets.map((dataset) => (
+        {safeDatasets.map((dataset) => (
           <div
             key={dataset.filename}
             className="bg-cb-bg/40 rounded-cb-md border border-cb-border"
@@ -68,7 +69,7 @@ export const DataNormalizationUI: React.FC<DataNormalizationUIProps> = ({
               <div>
                 <div className="text-xs font-bold text-cb-text">{dataset.filename}</div>
                 <div className="text-[10px] text-cb-muted mt-0.5">
-                  {dataset.columnMappings.length} columns mapped to canonical schema
+                  {dataset.columnMappings?.length || 0} columns mapped to canonical schema
                 </div>
               </div>
               {expandedDataset === dataset.filename ? (
@@ -83,7 +84,7 @@ export const DataNormalizationUI: React.FC<DataNormalizationUIProps> = ({
                 <div className="text-[10px] font-bold text-cb-muted uppercase tracking-wider mb-2">
                   Canonical Column Mappings
                 </div>
-                {dataset.columnMappings.map((mapping, idx) => (
+                {dataset.columnMappings?.map((mapping, idx) => (
                   <div
                     key={idx}
                     className="grid grid-cols-[1fr,auto,1fr] gap-2 items-center p-2 bg-cb-surface rounded-cb-sm border border-cb-border"
