@@ -4,6 +4,12 @@ import { createDemoIncident } from "../logic/demoCase";
 import { processEvidence } from "../logic/incident";
 import { extractDatasetMappings } from "../logic/normalize";
 import { saveCase, loadCase } from "../store/caseStore";
+import {
+  checkBackendHealth,
+  fetchPhishingDemo,
+  createCaseOnBackend,
+  uploadEvidenceToBackend,
+} from "../services/apiClient";
 import { ProcessStepper } from "../components/ProcessStepper";
 import { ModuleRail } from "../components/ModuleRail";
 import { EvidencePanel } from "../components/EvidencePanel";
@@ -28,6 +34,8 @@ import {
   Download,
   Printer,
   Share2,
+  Server,
+  Activity,
 } from "lucide-react";
 import {
   exportShareableRedactedJSON,
@@ -39,11 +47,38 @@ export const InvestigationDesk: React.FC = () => {
   const [activeStage, setActiveStage] = useState<number>(1);
   const [incident, setIncident] = useState<Incident>(() => createDemoIncident());
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [backendOnline, setBackendOnline] = useState<boolean>(false);
+  const [backendChecked, setBackendChecked] = useState<boolean>(false);
+
+  // Poll backend health on mount and periodically
+  useEffect(() => {
+    let isMounted = true;
+    async function checkHealth() {
+      const health = await checkBackendHealth();
+      if (isMounted) {
+        setBackendOnline(health.online);
+        setBackendChecked(true);
+      }
+    }
+    checkHealth();
+    const interval = setInterval(checkHealth, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Load latest case or demo case on mount
   useEffect(() => {
     async function initCase() {
       try {
+        // Try loading from backend demo first if online, else IndexedDB
+        const remoteDemo = await fetchPhishingDemo();
+        if (remoteDemo) {
+          setIncident(remoteDemo);
+          return;
+        }
+
         const saved = await loadCase("CB-2026-001");
         if (saved) {
           setIncident(saved);
@@ -62,18 +97,47 @@ export const InvestigationDesk: React.FC = () => {
     }
   }, [incident]);
 
-  // Load standard benchmark demo case
-  const handleLoadDemo = () => {
+  // Load standard benchmark demo case (from REST API if online, else client engine)
+  const handleLoadDemo = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      if (backendOnline) {
+        const remoteDemo = await fetchPhishingDemo();
+        if (remoteDemo) {
+          setIncident(remoteDemo);
+          setIsProcessing(false);
+          return;
+        }
+      }
+      // Local fallback
       const demo = createDemoIncident();
       setIncident(demo);
+    } catch (err) {
+      console.warn("Demo load fallback to local:", err);
+      const demo = createDemoIncident();
+      setIncident(demo);
+    } finally {
       setIsProcessing(false);
-    }, 150);
+    }
   };
 
   // Reset desk to blank investigation state
-  const handleReset = () => {
+  const handleReset = async () => {
+    setIsProcessing(true);
+    try {
+      if (backendOnline) {
+        const newCase = await createCaseOnBackend("New Digital Fraud Investigation");
+        if (newCase) {
+          setIncident(newCase);
+          setActiveStage(1);
+          setIsProcessing(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Backend reset fallback:", err);
+    }
+
     const blankIncident: Incident = {
       meta: {
         caseId: `CB-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
@@ -150,14 +214,27 @@ export const InvestigationDesk: React.FC = () => {
 
     setIncident(blankIncident);
     setActiveStage(1);
+    setIsProcessing(false);
   };
 
-  // Evidence list update handler (triggers full deterministic reconstruction)
+  // Evidence list update handler (triggers full deterministic reconstruction locally & remotely)
   const handleUpdateEvidence = async (newEvidenceList: EvidenceItem[]) => {
     setIsProcessing(true);
     try {
       const updatedIncident = await processEvidence(newEvidenceList);
       setIncident(updatedIncident);
+
+      // Async sync with backend if online
+      if (backendOnline && incident.meta.caseId) {
+        uploadEvidenceToBackend(
+          incident.meta.caseId,
+          newEvidenceList.map((e) => ({
+            type: e.type,
+            content: e.extractedText || "",
+            filename: e.filename,
+          }))
+        ).catch((err) => console.warn("Backend background sync notice:", err));
+      }
     } catch (err) {
       console.error("Evidence processing error:", err);
     } finally {
@@ -171,32 +248,49 @@ export const InvestigationDesk: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-cb-bg text-cb-text flex flex-col selection:bg-cb-primary selection:text-white">
       {/* Top Global Command Bar */}
-      <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800 sticky top-0 z-50 no-print">
+      <header className="bg-cb-surface/90 backdrop-blur border-b border-cb-border sticky top-0 z-50 no-print">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Brand & Case Meta */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shadow-inner">
+            <div className="w-10 h-10 rounded-cb-md bg-cb-primary/10 border border-cb-primary/30 flex items-center justify-center text-cb-primary shadow-inner">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-black tracking-tight text-white">
+                <span className="text-base font-black tracking-tight text-cb-text">
                   CASEBRIEF
                 </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800 font-bold">
+                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cb-primary/10 text-cb-primary border border-cb-primary/30 font-bold">
                   v2.0 PRO
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1 font-semibold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cb-success/10 text-cb-success border border-cb-success/30 flex items-center gap-1 font-semibold">
                   <Lock className="w-2.5 h-2.5" />
                   100% OFFLINE / ZERO CLOUD
                 </span>
+                {backendChecked && (
+                  <span
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded border flex items-center gap-1 font-semibold transition-all ${
+                      backendOnline
+                        ? "bg-cb-primary/10 text-cb-primary border-cb-primary/30"
+                        : "bg-cb-bg text-cb-muted border-cb-border"
+                    }`}
+                    title={
+                      backendOnline
+                        ? "Connected to Express Backend on Port 3000"
+                        : "Running on Client-Side Engine (Offline Mode)"
+                    }
+                  >
+                    <Server className="w-2.5 h-2.5" />
+                    {backendOnline ? "REST API :3000" : "LOCAL ENGINE"}
+                  </span>
+                )}
               </div>
-              <div className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
-                <span>Case Ref: <strong className="text-slate-200 font-mono">{incident.meta.caseId}</strong></span>
+              <div className="text-xs text-cb-muted flex items-center gap-2 mt-0.5">
+                <span>Case Ref: <strong className="text-cb-text font-mono">{incident.meta.caseId}</strong></span>
                 <span>•</span>
-                <span className="text-slate-400 font-medium truncate max-w-xs">{incident.meta.title}</span>
+                <span className="text-cb-muted font-medium truncate max-w-xs">{incident.meta.title}</span>
               </div>
             </div>
           </div>
@@ -206,7 +300,7 @@ export const InvestigationDesk: React.FC = () => {
             <button
               onClick={handleLoadDemo}
               disabled={isProcessing}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-md shadow-blue-950 transition-all cursor-pointer"
+              className="cb-btn-primary flex items-center gap-1.5 text-xs cursor-pointer shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5" />
               Load Phishing Benchmark Demo
@@ -214,18 +308,18 @@ export const InvestigationDesk: React.FC = () => {
 
             <button
               onClick={handleReset}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="cb-btn-ghost flex items-center gap-1.5 text-xs cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Reset Desk
             </button>
 
-            <div className="h-4 w-px bg-slate-800 hidden sm:block" />
+            <div className="h-4 w-px bg-cb-border hidden sm:block" />
 
             <button
               onClick={() => exportShareableRedactedJSON(incident)}
               title="Export Redacted JSON for Safe Sharing"
-              className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-emerald-400 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+              className="cb-icon-btn text-cb-success"
             >
               <Share2 className="w-4 h-4" />
             </button>
@@ -233,7 +327,7 @@ export const InvestigationDesk: React.FC = () => {
             <button
               onClick={() => exportFullForensicJSON(incident)}
               title="Download Full Forensic JSON File"
-              className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+              className="cb-icon-btn text-cb-text-secondary"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -241,7 +335,7 @@ export const InvestigationDesk: React.FC = () => {
             <button
               onClick={printIncidentReport}
               title="Print Official Incident Report"
-              className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-blue-400 rounded-lg border border-slate-700 transition-colors cursor-pointer"
+              className="cb-icon-btn text-cb-primary"
             >
               <Printer className="w-4 h-4" />
             </button>
@@ -315,24 +409,24 @@ export const InvestigationDesk: React.FC = () => {
         </section>
 
         {/* Bottom Step Navigation Control Bar */}
-        <section className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center justify-between no-print">
+        <section className="cb-surface p-4 flex items-center justify-between no-print shadow-sm">
           <button
             onClick={() => setActiveStage((prev) => Math.max(1, prev - 1))}
             disabled={activeStage === 1}
-            className="px-4 py-2 rounded-lg text-xs font-semibold border border-slate-700 text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-2 transition-all cursor-pointer"
+            className="cb-btn-ghost flex items-center gap-2 text-xs cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
           >
             <ArrowLeft className="w-4 h-4" />
             Previous Stage
           </button>
 
-          <div className="text-xs font-mono text-slate-400">
-            Investigation Stage <strong className="text-white">{activeStage}</strong> of <strong>7</strong>
+          <div className="text-xs font-mono text-cb-muted">
+            Investigation Stage <strong className="text-cb-text">{activeStage}</strong> of <strong>7</strong>
           </div>
 
           <button
             onClick={() => setActiveStage((prev) => Math.min(7, prev + 1))}
             disabled={activeStage === 7}
-            className="px-4 py-2 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-30 disabled:pointer-events-none flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            className="cb-btn-primary flex items-center gap-2 text-xs cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
           >
             Next Stage
             <ArrowRight className="w-4 h-4" />
@@ -341,7 +435,7 @@ export const InvestigationDesk: React.FC = () => {
       </main>
 
       {/* Footer Disclaimer */}
-      <footer className="border-t border-slate-800/80 bg-slate-950 py-4 text-center text-xs text-slate-500 no-print">
+      <footer className="border-t border-cb-border bg-cb-bg py-4 text-center text-xs text-cb-muted no-print">
         CaseBrief Forensic Reconstruction Desk • Zero External API Calls • Deterministic Evidence Processing Engine • ISO/IEC 27037 Standard Compliant
       </footer>
     </div>

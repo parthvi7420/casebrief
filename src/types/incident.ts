@@ -91,6 +91,7 @@ export interface Conflict {
   field?: string;
   description: string;
   reason?: string;
+  discrepancyDiff?: string;
   status?: "unresolved" | "investigating" | "confirmed_contradiction";
   sourceA: {
     evidenceId: string;
@@ -187,7 +188,8 @@ export interface MatchedRecordPair {
   recordA: NormalizedTransaction;
   recordB: NormalizedTransaction;
   matchType: "EXACT_MATCH" | "PROBABLE_MATCH" | "PARTIAL_MATCH";
-  confidence: number;
+  confidence: "EXACT_MATCH" | "PROBABLE_MATCH" | "PARTIAL_MATCH" | number;
+  confidenceScore?: number;
   matchedFields: string[];
   reasons: string[];
 }
@@ -198,6 +200,7 @@ export interface MatchedRecordPair {
 export interface DuplicateFinding {
   id: string;
   type: "EXACT_DUPLICATE" | "POSSIBLE_DUPLICATE" | "CONFLICTING_DUPLICATE";
+  duplicateType?: "EXACT_DUPLICATE" | "POSSIBLE_DUPLICATE" | "CONFLICTING_DUPLICATE";
   status: "DUPLICATE" | "POSSIBLE DUPLICATE";
   description: string;
   recordA: NormalizedTransaction;
@@ -245,6 +248,7 @@ export interface ChecklistItem {
   field?: string;
   label: string;
   description: string;
+  category?: string;
   passed?: boolean;
   status?: "pass" | "fail" | "warning";
   required?: boolean;

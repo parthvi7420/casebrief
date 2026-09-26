@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link2, Eye, EyeOff } from "lucide-react";
+import { Link2, Eye, EyeOff, Info } from "lucide-react";
 import { ForensicAssertion } from "../types/incident";
 
 export interface AssumptionRecord {
@@ -25,107 +25,122 @@ export const AssumptionsPanel: React.FC<AssumptionsPanelProps> = ({
 
   if (assumptions.length === 0) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
-        <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-          <Link2 className="w-5 h-5 text-blue-400" />
+      <div className="cb-surface p-6 shadow-sm">
+        <h3 className="text-sm font-bold text-cb-text mb-2 flex items-center gap-2">
+          <Link2 className="w-5 h-5 text-cb-primary" />
           Stage 4d: Assumptions & Inferred Relationships
         </h3>
-        <p className="text-sm text-slate-400">No inferred relationships documented</p>
+        <p className="text-xs text-cb-muted">No inferred relationships documented</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Link2 className="w-5 h-5 text-blue-400" />
-            Stage 4d: Assumptions & Forensic Inferences
+    <div className="cb-surface p-6 shadow-sm space-y-6">
+      <div className="flex items-center justify-between pb-4 border-b border-cb-border">
+        <div>
+          <h3 className="text-sm font-bold text-cb-text flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-cb-primary" />
+            Stage 4d: Inferred Relationships & Assumptions
           </h3>
-          <span className="text-xs font-semibold px-3 py-1 bg-blue-950/80 text-blue-300 rounded-full border border-blue-500/30">
-            {assumptions.length} Evaluated Assertion(s)
-          </span>
+          <p className="text-xs text-cb-muted mt-1">
+            Forensic assumptions evaluated with confidence badges & source traceability.
+          </p>
         </div>
+        <span className="cb-badge cb-badge-idle">{assumptions.length} Evaluated</span>
+      </div>
 
-        <div className="space-y-4 mt-6">
-          {assumptions.map((item) => {
-            const id = item.id;
-            const title = ("claim" in item && item.claim) || ("description" in item && item.description) || "Forensic Assertion";
-            const reason = ("rationale" in item && item.rationale) || ("reason" in item && item.reason) || "";
-            const badge = ("displayBadge" in item && item.displayBadge) || ("status" in item && String(item.status).toUpperCase()) || "UNVERIFIED";
-            const evidence = ("sourceEvidenceIds" in item && item.sourceEvidenceIds) || ("evidenceIds" in item && item.evidenceIds) || [];
+      <div className="space-y-3">
+        {assumptions.map((item) => {
+          const id = item.id;
+          const title =
+            ("claim" in item && item.claim) ||
+            ("description" in item && item.description) ||
+            "Forensic Assertion";
+          const reason =
+            ("rationale" in item && item.rationale) ||
+            ("reason" in item && item.reason) ||
+            "";
+          const badge =
+            ("displayBadge" in item && item.displayBadge) ||
+            ("status" in item && String(item.status).toUpperCase()) ||
+            "UNVERIFIED";
+          const evidence =
+            ("sourceEvidenceIds" in item && item.sourceEvidenceIds) ||
+            ("evidenceIds" in item && item.evidenceIds) ||
+            [];
 
-            const isVerified = badge.includes("CONFIRMED") || badge === "VERIFIED";
-            const isDisputed = badge === "DISPUTED" || badge === "MISSING";
+          const isVerified =
+            badge.includes("CONFIRMED") ||
+            badge === "VERIFIED" ||
+            ("level" in item && String(item.level) === "CONFIRMED");
+          const isDisputed =
+            badge === "DISPUTED" ||
+            badge === "MISSING" ||
+            ("level" in item && String(item.level) === "MISSING");
 
-            return (
-              <div
-                key={id}
-                className={`border rounded-lg p-4 ${
-                  isVerified
-                    ? "bg-emerald-950/30 border-emerald-800/60"
-                    : isDisputed
-                      ? "bg-red-950/30 border-red-800/60"
-                      : "bg-slate-950/80 border-blue-800/60"
-                }`}
+          return (
+            <div
+              key={id}
+              className={`border rounded-cb-md transition-all ${
+                isVerified
+                  ? "bg-cb-success/5 border-cb-success/20"
+                  : isDisputed
+                  ? "bg-cb-critical/5 border-cb-critical/20"
+                  : "bg-cb-bg/40 border-cb-border"
+              }`}
+            >
+              <button
+                onClick={() =>
+                  setExpandedId(expandedId === id ? null : id)
+                }
+                className="w-full text-left p-3 flex items-center justify-between hover:bg-cb-surface transition-all rounded-cb-md cursor-pointer"
               >
-                <button
-                  onClick={() =>
-                    setExpandedId(expandedId === id ? null : id)
-                  }
-                  className="w-full text-left flex items-center justify-between hover:opacity-80 transition"
-                >
-                  <div>
-                    <div className="font-bold text-white">{title}</div>
-                    <div className="text-sm text-slate-400 mt-1 flex items-center gap-2">
-                      <span>Status:</span>
-                      <span
-                        className={`font-semibold text-xs px-2 py-0.5 rounded ${
-                          isVerified
-                            ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
-                            : isDisputed
-                              ? "bg-red-950 text-red-400 border border-red-800"
-                              : "bg-amber-950 text-amber-300 border border-amber-800"
-                        }`}
-                      >
-                        {badge}
-                      </span>
-                    </div>
+                <div className="min-w-0 pr-3">
+                  <div className="text-xs font-bold text-cb-text truncate">{title}</div>
+                  <div className="text-[10px] mt-1 flex items-center gap-2">
+                    <span className="text-cb-muted">Status:</span>
+                    <span
+                      className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${
+                        isVerified
+                          ? "bg-cb-success/20 text-cb-success border border-cb-success/30"
+                          : isDisputed
+                          ? "bg-cb-critical/20 text-cb-critical border border-cb-critical/30"
+                          : "bg-cb-warning/20 text-cb-warning border border-cb-warning/30"
+                      }`}
+                    >
+                      {badge}
+                    </span>
                   </div>
-                  {expandedId === id ? (
-                    <EyeOff className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <Eye className="w-4 h-4 text-slate-400" />
-                  )}
-                </button>
-
-                {expandedId === id && (
-                  <div className="mt-3 pt-3 border-t border-slate-700 space-y-2">
-                    {reason && (
-                      <div>
-                        <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">
-                          Forensic Rationale
-                        </div>
-                        <div className="text-sm text-slate-300 mt-1">{reason}</div>
-                      </div>
-                    )}
-                    {evidence.length > 0 && (
-                      <div>
-                        <div className="text-xs text-slate-400 uppercase tracking-wider font-bold">
-                          Supporting Evidence IDs
-                        </div>
-                        <div className="text-xs text-slate-400 mt-1 font-mono">
-                          {evidence.join(", ")}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                </div>
+                {expandedId === id ? (
+                  <EyeOff className="w-4 h-4 text-cb-muted shrink-0" />
+                ) : (
+                  <Eye className="w-4 h-4 text-cb-muted shrink-0" />
                 )}
-              </div>
-            );
-          })}
-        </div>
+              </button>
+
+              {expandedId === id && (
+                <div className="px-3 pb-3 pt-2 border-t border-cb-border-subtle space-y-2">
+                  {reason && (
+                    <div className="text-xs text-cb-text-secondary leading-relaxed bg-cb-surface p-2.5 rounded-cb-sm border border-cb-border">
+                      <div className="text-[10px] font-bold text-cb-muted uppercase tracking-wider mb-1">
+                        Forensic Rationale
+                      </div>
+                      {reason}
+                    </div>
+                  )}
+                  {evidence.length > 0 && (
+                    <div className="text-[10px] text-cb-muted font-mono flex items-center gap-2 bg-cb-bg/60 p-2 rounded-cb-sm border border-cb-border-subtle">
+                      <Info className="w-3 h-3 text-cb-primary shrink-0" />
+                      <span>Supporting Evidence: <strong>{evidence.join(", ")}</strong></span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

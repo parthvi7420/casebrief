@@ -86,46 +86,46 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
     switch (type) {
       case "csv":
       case "transaction":
-        return <FileSpreadsheet className="w-5 h-5 text-emerald-400" />;
+        return <FileSpreadsheet className="w-4 h-4 text-cb-success" />;
       case "url":
-        return <Link2 className="w-5 h-5 text-blue-400" />;
+        return <Link2 className="w-4 h-4 text-cb-primary" />;
       case "message":
-        return <FileText className="w-5 h-5 text-amber-400" />;
+        return <FileText className="w-4 h-4 text-cb-warning" />;
       default:
-        return <FileCode className="w-5 h-5 text-purple-400" />;
+        return <FileCode className="w-4 h-4 text-cb-muted" />;
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-md">
-        <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-slate-800 gap-2">
+      <div className="cb-surface p-6 shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-cb-border gap-2">
           <div>
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Upload className="w-5 h-5 text-blue-400" />
+            <h3 className="text-sm font-bold text-cb-text flex items-center gap-2">
+              <Upload className="w-5 h-5 text-cb-primary" />
               Stage 1: Multi-Modal Evidence Intake & Custody
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-cb-muted mt-1">
               Ingest chat logs, URLs, CSV transaction statements, and raw fraud artifacts with SHA-256 integrity verification.
             </p>
           </div>
-          <span className="text-xs font-semibold px-3 py-1 bg-slate-800 text-slate-300 rounded-full border border-slate-700 w-fit">
+          <span className="cb-badge cb-badge-idle">
             {evidence.length} Evidence Artifacts Ingested
           </span>
         </div>
 
         {/* Upload & Manual Paste Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Dropzone */}
-          <div className="lg:col-span-1 border-2 border-dashed border-slate-700 hover:border-blue-500 rounded-xl p-6 flex flex-col items-center justify-center text-center bg-slate-950/40 transition-colors">
-            <Upload className="w-10 h-10 text-slate-500 mb-3" />
-            <div className="text-sm font-semibold text-slate-200">
+          <div className="lg:col-span-1 border-2 border-dashed border-cb-border hover:border-cb-primary rounded-cb-md p-6 flex flex-col items-center justify-center text-center bg-cb-bg/40 transition-colors">
+            <Upload className="w-8 h-8 text-cb-muted mb-3" />
+            <div className="text-xs font-semibold text-cb-text">
               Drag & Drop Evidence Files
             </div>
-            <p className="text-xs text-slate-500 mt-1 mb-4">
+            <p className="text-[10px] text-cb-muted mt-1 mb-4">
               Supports .txt, .csv, .log, .pdf, or exported chats
             </p>
-            <label className="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors">
+            <label className="cursor-pointer px-3.5 py-1.5 bg-cb-primary hover:bg-cb-primary-hover text-white text-xs font-semibold rounded-cb-md shadow-sm transition-colors">
               Browse Files
               <input
                 type="file"
@@ -140,11 +140,11 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
           <form onSubmit={handleManualSubmit} className="lg:col-span-2 space-y-3">
             <div className="flex flex-wrap gap-2 items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-slate-400">Type:</span>
+                <span className="text-xs font-semibold text-cb-muted">Type:</span>
                 <select
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value as EvidenceItem["type"])}
-                  className="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded px-2.5 py-1 focus:outline-none focus:border-blue-500"
+                  className="bg-cb-bg border border-cb-border text-xs text-cb-text rounded-cb-sm px-2.5 py-1 focus:outline-none focus:border-cb-primary"
                 >
                   <option value="message">WhatsApp / SMS Chat</option>
                   <option value="url">Suspicious URL / Phishing Link</option>
@@ -158,7 +158,7 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
                 placeholder="Optional Label (e.g. chat_export.txt)"
                 value={fileNameInput}
                 onChange={(e) => setFileNameInput(e.target.value)}
-                className="bg-slate-800 border border-slate-700 text-xs text-slate-200 rounded px-3 py-1 flex-1 min-w-[200px] focus:outline-none focus:border-blue-500"
+                className="bg-cb-bg border border-cb-border text-xs text-cb-text rounded-cb-sm px-3 py-1 flex-1 min-w-[200px] focus:outline-none focus:border-cb-primary placeholder:text-cb-muted"
               />
             </div>
 
@@ -167,16 +167,16 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
               placeholder="Paste raw WhatsApp text, suspicious link, or CSV statement content here..."
               value={rawTextInput}
               onChange={(e) => setRawTextInput(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700/80 rounded-lg p-3 text-xs text-slate-200 font-mono focus:outline-none focus:border-blue-500 placeholder:text-slate-600"
+              className="w-full bg-cb-bg border border-cb-border rounded-cb-sm p-3 text-xs text-cb-text font-mono focus:outline-none focus:border-cb-primary placeholder:text-cb-muted"
             />
 
             <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={isSubmitting || !rawTextInput.trim()}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="cb-btn-ghost flex items-center gap-1.5 text-xs cursor-pointer disabled:opacity-50"
               >
-                <PlusCircle className="w-4 h-4 text-blue-400" />
+                <PlusCircle className="w-4 h-4 text-cb-primary" />
                 Ingest & Hash Evidence
               </button>
             </div>
@@ -186,48 +186,48 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
 
       {/* Ingested Evidence Cards */}
       <div className="space-y-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1 flex items-center gap-1.5">
-          <Fingerprint className="w-4 h-4 text-emerald-400" />
+        <h4 className="text-xs font-bold uppercase tracking-wider text-cb-muted px-1 flex items-center gap-1.5">
+          <Fingerprint className="w-4 h-4 text-cb-success" />
           Cryptographic Chain-of-Custody Registry (SHA-256)
         </h4>
 
         {evidence.map((item, idx) => (
           <div
             key={item.id}
-            className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 shadow-sm transition-all"
+            className="cb-surface border border-cb-border hover:border-cb-border-hover rounded-cb-md p-4 shadow-sm transition-all"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800/60 gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-cb-border gap-2">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-cb-sm bg-cb-bg border border-cb-border flex items-center justify-center shrink-0">
                   {getEvidenceIcon(item.type)}
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                  <div className="text-xs font-semibold text-cb-text flex items-center gap-2">
                     <span>{item.filename || `Evidence Item #${idx + 1}`}</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cb-bg text-cb-muted border border-cb-border-subtle uppercase">
                       {item.type}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-400 font-mono">
+                  <div className="text-[10px] text-cb-muted font-mono">
                     ID: {item.id} • Ingested: {new Date(item.createdAt).toLocaleTimeString()}
                   </div>
                 </div>
               </div>
 
               {/* SHA-256 Hash Badge */}
-              <div className="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-lg max-w-full overflow-hidden">
-                <Fingerprint className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="text-[11px] font-mono text-emerald-300 truncate max-w-[240px] sm:max-w-[280px]">
+              <div className="flex items-center gap-2 bg-cb-bg/80 border border-cb-border px-3 py-1.5 rounded-cb-sm max-w-full overflow-hidden">
+                <Fingerprint className="w-3.5 h-3.5 text-cb-success shrink-0" />
+                <span className="text-[10px] font-mono text-cb-success truncate max-w-[240px] sm:max-w-[280px]">
                   {item.hash || "Computing SHA-256..."}
                 </span>
                 {item.hash && (
                   <button
                     onClick={() => handleCopyHash(item.hash!)}
                     title="Copy SHA-256 Hash"
-                    className="text-slate-400 hover:text-slate-200 ml-1 p-0.5"
+                    className="text-cb-muted hover:text-cb-text ml-1 p-0.5"
                   >
                     {copiedHash === item.hash ? (
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <Check className="w-3.5 h-3.5 text-cb-success" />
                     ) : (
                       <Copy className="w-3.5 h-3.5" />
                     )}
@@ -237,8 +237,8 @@ export const EvidencePanel: React.FC<EvidencePanelProps> = ({
             </div>
 
             {/* Content Preview */}
-            <div className="mt-3 bg-slate-950/90 rounded-lg p-3 border border-slate-800/80">
-              <pre className="text-xs font-mono text-slate-300 whitespace-pre-wrap break-all max-h-24 overflow-y-auto leading-relaxed">
+            <div className="mt-3 bg-cb-bg/60 rounded-cb-sm p-3 border border-cb-border">
+              <pre className="text-xs font-mono text-cb-text-secondary whitespace-pre-wrap break-all max-h-24 overflow-y-auto leading-relaxed">
                 {item.extractedText}
               </pre>
             </div>

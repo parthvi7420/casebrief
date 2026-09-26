@@ -221,7 +221,7 @@ const recB: NormalizedTransaction = {
 const matchPair = matchTwoRecords(recA, recB);
 assert(matchPair !== null, "Records with identical reference, amount, and counterparty should match");
 assert(matchPair?.matchType === "EXACT_MATCH", "Match type should be EXACT_MATCH");
-assert((matchPair?.confidence ?? 0) >= 0.85, "Confidence score should be high (>= 0.85)");
+assert(Number(matchPair?.confidence ?? 0) >= 0.85, "Confidence score should be high (>= 0.85)");
 console.log("✔ Phase 2: Multi-Attribute Record Matching OK");
 
 // 15. NON-DESTRUCTIVE DUPLICATE DETECTION
