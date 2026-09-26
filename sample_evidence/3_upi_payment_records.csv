@@ -1,0 +1,3 @@
+date,time,transaction_id,sender_account,receiver_upi,amount,status,utr,narration
+2026-09-26,10:45:00,TXN_UPI_889201,XXXX4521,verify@oksbi,4999.00,SUCCESS,,UPI to KYC Unblock Desk
+2026-09-26,11:15:00,TXN_UPI_889202,XXXX4521,fake-support@okaxis,5000.00,FAILED,UTR112233445566,Second Extortion Attempt
