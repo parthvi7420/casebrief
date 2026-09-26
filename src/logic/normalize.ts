@@ -150,6 +150,64 @@ export function normalizeAllTransactions(evidenceList: EvidenceItem[]): Normaliz
   return allNormalized;
 }
 
+export interface ColumnMappingInfo {
+  sourceColumn: string;
+  mappedField: string;
+  dataType: string;
+}
+
+export interface DatasetInfoSummary {
+  filename: string;
+  columnMappings: ColumnMappingInfo[];
+}
+
+/**
+ * Extracts column mapping summary metadata for dataset mapping inspection UI.
+ */
+export function extractDatasetMappings(evidenceList: EvidenceItem[]): DatasetInfoSummary[] {
+  const datasets: DatasetInfoSummary[] = [];
+
+  for (const item of evidenceList) {
+    if (item.type === "csv" || (item.extractedText && item.extractedText.includes(","))) {
+      const lines = (item.extractedText || "").trim().split(/\r?\n/).filter(Boolean);
+      if (lines.length === 0) continue;
+
+      const headers = parseCSVLine(lines[0]);
+      const mappings: ColumnMappingInfo[] = [];
+
+      for (const h of headers) {
+        const cleanHeader = h.trim().replace(/[\s\-_]+/g, "_");
+        let mappedField = "unmapped";
+        let dataType = "string";
+
+        for (const [canonicalKey, regex] of Object.entries(FIELD_ALIASES)) {
+          if (regex.test(cleanHeader)) {
+            mappedField = canonicalKey;
+            if (canonicalKey === "amount") dataType = "number";
+            else if (canonicalKey === "date" || canonicalKey === "time") dataType = "date/time";
+            else if (canonicalKey === "transactionReference") dataType = "reference";
+            else dataType = "string";
+            break;
+          }
+        }
+
+        mappings.push({
+          sourceColumn: h,
+          mappedField,
+          dataType,
+        });
+      }
+
+      datasets.push({
+        filename: item.filename || `Dataset-${item.id}`,
+        columnMappings: mappings,
+      });
+    }
+  }
+
+  return datasets;
+}
+
 /**
  * CSV Line Tokenizer handling quotes and commas
  */
