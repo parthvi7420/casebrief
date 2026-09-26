@@ -7,10 +7,10 @@ import { Incident, EvidenceItem, Party } from "../types/incident";
 
 export function maskPhoneNumber(phone: string): string {
   if (!phone) return "";
-  const cleaned = phone.trim();
+  const cleaned = phone.trim().replace(/\s+/g, "");
   if (cleaned.length <= 4) return "******";
   const last4 = cleaned.slice(-4);
-  const prefix = cleaned.startsWith("+91") ? "+91 " : "";
+  const prefix = cleaned.startsWith("+91") ? "+91" : "";
   return `${prefix}******${last4}`;
 }
 
@@ -18,18 +18,15 @@ export function maskEmail(email: string): string {
   if (!email || !email.includes("@")) return "******@***.com";
   const [local, domain] = email.split("@");
   if (local.length <= 2) {
-    return `*@${domain}`;
+    return `******@${domain}`;
   }
-  return `${local[0]}****${local[local.length - 1]}@${domain}`;
+  return `${local[0]}******${local[local.length - 1]}@${domain}`;
 }
 
 export function maskUPI(upi: string): string {
   if (!upi || !upi.includes("@")) return "******@upi";
-  const [handle, psp] = upi.split("@");
-  if (handle.length <= 2) {
-    return `*@${psp}`;
-  }
-  return `${handle.slice(0, 2)}****@${psp}`;
+  const [, psp] = upi.split("@");
+  return `******@${psp}`;
 }
 
 export function maskAccountNumber(account: string): string {
